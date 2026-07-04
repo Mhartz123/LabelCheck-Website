@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>LabelCheck Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     :root{--green:#1a7a3c;--green-mid:#2d9e55;--green-light:#e8f5ee;--banned:#e05050;--nc:#f0a500;--border:#e5e7eb}
@@ -409,15 +408,9 @@
 </div>
 
 <script>
-  // ════════════════════════════════════════
-  // ⚠️  REPLACE THESE WITH YOUR SUPABASE VALUES
-  // ════════════════════════════════════════
-  const SUPABASE_URL  = 'YOUR_SUPABASE_URL';
-  const SUPABASE_KEY  = 'YOUR_SUPABASE_ANON_KEY';
-  // ════════════════════════════════════════
-
-  const { createClient } = supabase;
-  const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+  // Same-origin API served by /api/reports (backed by Supabase server-side —
+  // no keys are ever exposed to the browser).
+  const SERVER = '';
 
   let allReports   = [];
   let visibleCount = 10;
@@ -428,25 +421,14 @@
   function fmtDate(iso){ if(!iso)return'—'; const d=new Date(iso); return d.toLocaleDateString('en-PH',{month:'numeric',day:'numeric',year:'numeric'})+' at '+d.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'})+' EST'; }
   function fmtShort(iso){ if(!iso)return'—'; return new Date(iso).toLocaleDateString('en-PH',{month:'short',day:'2-digit',year:'numeric'}); }
 
-  // ── LOAD FROM SUPABASE ──
+  // ── LOAD FROM /api/reports ──
   async function loadReports(){
     try {
-      const { data, error } = await db
-        .from('compliance_reports')
-        .select('*')
-        .order('scanned_at', { ascending: false });
+      const res = await fetch(SERVER + '/api/reports');
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.reason || 'request failed');
 
-      if(error) throw error;
-
-      allReports = (data||[]).map(r=>({
-        id:             r.id,
-        productName:    r.product_name,
-        status:         r.status,
-        matchedKeyword: r.matched_keyword,
-        extractedText:  r.extracted_text,
-        imageBase64:    r.image_base64,
-        scannedAt:      r.scanned_at,
-      }));
+      allReports = json.reports || [];
 
       renderReports();
       updateDashboard();
@@ -454,6 +436,7 @@
     } catch(e){
       console.error(e);
       document.getElementById('live-text').textContent = 'Error';
+
     }
   }
 
@@ -598,12 +581,9 @@
     document.getElementById('modal-bg').classList.add('open');
   }
 
-  // ── REAL-TIME SUBSCRIPTION ──
-  db.channel('compliance_reports')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'compliance_reports' }, () => loadReports())
-    .subscribe();
-
   // ── INIT ──
+  // (Live updates come from polling /api/reports every 30s below —
+  // no direct browser-to-Supabase connection needed or used.)
   loadReports();
   setInterval(loadReports, 30000);
 </script>
