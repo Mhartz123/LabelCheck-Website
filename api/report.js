@@ -18,7 +18,6 @@ module.exports = async (req, res) => {
     return res.status(400).json({ ok: false, reason: 'invalid JSON' });
   }
 
-  // Only store flagged reports (mirrors the original server behavior)
   const allowed = ['NON-COMPLIANT', 'WARNING / BANNED'];
   if (!allowed.includes(body.status)) {
     return res.status(200).json({ ok: false, reason: 'status not flagged — not stored' });
@@ -26,16 +25,30 @@ module.exports = async (req, res) => {
 
   if (!body.id) body.id = Date.now() + '_' + Math.random().toString(36).slice(2);
 
+  const row = {
+    id:              body.id,
+    status:          body.status,
+    product_name:    body.productName || '',
+    matched_keyword: body.matchedKeyword || '',
+    reasons:         Array.isArray(body.reasons) ? body.reasons : [],
+    brand:           body.brand || '',
+    expiration:      body.expiration || '',
+    ingredients:     body.ingredients || '',
+    extracted_text:  body.extractedText || '',
+    scanned_at:      body.scannedAt || null,
+    image_base64:    body.imageBase64 || null,
+  };
+
   try {
     const supabase = getClient();
     const { error } = await supabase
       .from('reports')
-      .upsert({ id: body.id, status: body.status, data: body }, { onConflict: 'id' });
+      .upsert(row, { onConflict: 'id' });
 
     if (error) throw error;
 
-    console.log(`[+] Report received: ${body.productName} — ${body.status}`);
-    return res.status(200).json({ ok: true, id: body.id });
+    console.log(`[+] Report received: ${row.product_name} — ${row.status}`);
+    return res.status(200).json({ ok: true, id: row.id });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ ok: false, reason: 'database error' });
