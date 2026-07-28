@@ -7,7 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    :root{--green:#1a7a3c;--green-dark:#136030;--green-light:#e8f5ee;--banned:#e05050;--nc:#e0930a;--border:#e4e7e4;--text:#141a16;--muted:#8a938c;--muted2:#6b7280;--bg:#eef0ee}
+    :root{--green:#1a7a3c;--green-dark:#136030;--green-light:#e8f5ee;--banned:#e05050;--nc:#e0930a;--damage:#1565c0;--damage-light:#e3f2fd;--border:#e4e7e4;--text:#141a16;--muted:#8a938c;--muted2:#6b7280;--bg:#eef0ee}
     html,body{height:100%;font-family:'Public Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
     a{color:var(--green);text-decoration:none}
     a:hover{color:var(--green-dark)}
@@ -135,7 +135,10 @@
     .row-name{font-size:15px;font-weight:800;letter-spacing:-.01em;color:var(--text)}
     .row-meta{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
     .badge{font-size:11px;font-weight:700;color:#fff;padding:3px 9px;border-radius:5px}
-    .row-brand{font-size:12px;color:#6b7280}
+    /* Which of the two checks produced a row, so the mixed list stays readable */
+    .type-badge{font-size:10px;font-weight:800;letter-spacing:.4px;padding:3px 8px;border-radius:5px;border:1px solid}
+    .type-badge.label{color:var(--green);background:var(--green-light);border-color:#b6e8c8}
+    .type-badge.damage{color:var(--damage);background:var(--damage-light);border-color:#b3d4f5}
     .row-dot{font-size:12px;color:#c9cec9}
     .row-matched{font-size:12px;color:#6b7280}
     .row-matched strong{color:#414a43;font-weight:600}
@@ -166,7 +169,7 @@
     .detail-keyword-val{font-size:16px;font-weight:800}
     .detail-right{display:flex;flex-direction:column;gap:20px}
     .detail-title{font-size:28px;font-weight:800;letter-spacing:-.02em;line-height:1.15}
-    .detail-brand{font-size:14px;color:#6b7280;margin-top:5px}
+    .detail-subtitle{font-size:14px;color:#6b7280;margin-top:5px}
     .detail-mini-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
     .detail-mini-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:15px 17px}
     .detail-mini-label{font-size:11px;font-weight:700;color:#9ca3af;letter-spacing:.4px;text-transform:uppercase;margin-bottom:5px}
@@ -179,6 +182,17 @@
     .ocr-box{background:#0f2b19;border-radius:14px;padding:20px 22px}
     .ocr-label{font-size:11px;font-weight:700;color:#7fbf98;letter-spacing:.5px;text-transform:uppercase;margin-bottom:9px}
     .ocr-text{font-size:13px;color:#d7e4dc;line-height:1.7;font-family:ui-monospace,'SF Mono',Menlo,monospace;white-space:pre-wrap}
+
+    /* ══ DAMAGE FINDINGS ══ */
+    .finding-row{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid #eef1ee}
+    .finding-row:last-child{border-bottom:none}
+    .finding-side{font-size:11px;font-weight:800;color:var(--damage);background:var(--damage-light);padding:4px 10px;border-radius:6px;flex:none;min-width:66px;text-align:center}
+    .finding-text{font-size:13.5px;color:#414a43;flex:1}
+    .finding-conf{font-size:13px;font-weight:800;color:#414a43;flex:none}
+    .model-note{background:var(--damage-light);border:1px solid #b3d4f5;border-radius:10px;padding:13px 16px;font-size:12.5px;color:#0d47a1;line-height:1.6}
+    .yes-no{display:inline-flex;align-items:center;gap:6px;font-weight:800}
+    .yes-no.bad{color:var(--banned)}
+    .yes-no.good{color:var(--green)}
   </style>
 </head>
 <body>
@@ -234,15 +248,15 @@
             <div><div class="stat-num" id="stat-banned">—</div><div class="stat-label">BANNED</div></div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon" style="background:#eef1ee"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="#6b7280" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
-            <div><div class="stat-num" id="stat-pending">0</div><div class="stat-label">PENDING REVIEW</div></div>
+            <div class="stat-icon" style="background:#e3f2fd"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="#1565c0" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15l-5-5L5 21"/><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/></svg></div>
+            <div><div class="stat-num" id="stat-damaged">—</div><div class="stat-label">DAMAGED PACKAGING</div></div>
           </div>
         </div>
 
         <div class="mid-row">
           <div class="card">
-            <div class="card-title">Flagged by status</div>
-            <div class="card-sub">All-time distribution</div>
+            <div class="card-title">Flagged by outcome</div>
+            <div class="card-sub">All-time · label checks and damage checks</div>
             <div class="donut-area">
               <div class="donut-wrap">
                 <svg viewBox="0 0 120 120" id="donut-svg">
@@ -254,11 +268,11 @@
                 </div>
               </div>
               <div class="legend-list">
-                <div class="legend-row"><div class="legend-dot" style="background:#e0930a"></div><span class="legend-name">Non-compliant</span><span class="legend-val" id="leg-nc">—</span></div>
+                <div class="legend-row"><div class="legend-dot" style="background:#e0930a"></div><span class="legend-name">Label · Non-compliant</span><span class="legend-val" id="leg-nc">—</span></div>
                 <div class="legend-div"></div>
-                <div class="legend-row"><div class="legend-dot" style="background:#e05050"></div><span class="legend-name">Banned</span><span class="legend-val" id="leg-bn">—</span></div>
+                <div class="legend-row"><div class="legend-dot" style="background:#e05050"></div><span class="legend-name">Label · Banned</span><span class="legend-val" id="leg-bn">—</span></div>
                 <div class="legend-div"></div>
-                <div class="legend-row"><div class="legend-dot" style="background:#c9cec9"></div><span class="legend-name">Pending</span><span class="legend-val" id="leg-pending">0</span></div>
+                <div class="legend-row"><div class="legend-dot" style="background:#1565c0"></div><span class="legend-name">Damaged packaging</span><span class="legend-val" id="leg-dmg">—</span></div>
               </div>
             </div>
           </div>
@@ -312,14 +326,21 @@
             <option value="oldest">Sort by: Oldest</option>
           </select>
           <div class="tb-divider"></div>
-          <div class="chip-group">
+          <!-- Which check produced the report — narrows what the outcome
+               chips beside it can mean. -->
+          <div class="chip-group" role="group" aria-label="Filter by check type">
+            <button class="chip active" id="type-all" onclick="setTypeFilter('all')">All types</button>
+            <button class="chip" id="type-label" onclick="setTypeFilter('LABEL')">Label</button>
+            <button class="chip" id="type-damage" onclick="setTypeFilter('DAMAGE')">Damage</button>
+          </div>
+          <div class="chip-group" id="outcome-chips" role="group" aria-label="Filter by outcome">
             <button class="chip active" id="chip-all" onclick="setFilter('all')">All</button>
             <button class="chip" id="chip-nc" onclick="setFilter('nc')">Non-compliant</button>
             <button class="chip" id="chip-banned" onclick="setFilter('banned')">Banned</button>
           </div>
           <div class="tb-search">
             <svg viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-            <input type="text" id="search-input" aria-label="Search reports by product or keyword" placeholder="Search by product or keyword…" oninput="renderReports()"/>
+            <input type="text" id="search-input" aria-label="Search reports by name, product or keyword" placeholder="Search by name, product or damage…" oninput="renderReports()"/>
           </div>
           <button class="tb-btn export-btn" onclick="exportCSV()">
             <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
@@ -355,29 +376,48 @@
             <div class="detail-img" id="detail-img"></div>
             <div class="detail-badge" id="detail-badge"></div>
             <div class="detail-keyword-card">
-              <div class="detail-label">Matched keyword</div>
+              <div class="detail-label" id="detail-keyword-label">Matched keyword</div>
               <div class="detail-keyword-val" id="detail-keyword"></div>
             </div>
           </div>
           <div class="detail-right">
             <div>
               <div class="detail-title" id="detail-name"></div>
-              <div class="detail-brand" id="detail-brand-main"></div>
+              <div class="detail-subtitle" id="detail-subtitle"></div>
             </div>
+
+            <!-- Three headline figures; their labels and values differ per
+                 check type — see renderDetail(). -->
             <div class="detail-mini-grid">
-              <div class="detail-mini-card"><div class="detail-mini-label">Brand</div><div class="detail-mini-val" id="detail-brand"></div></div>
-              <div class="detail-mini-card"><div class="detail-mini-label">Expiration</div><div class="detail-mini-val" id="detail-expiration"></div></div>
+              <div class="detail-mini-card"><div class="detail-mini-label" id="detail-m1-label"></div><div class="detail-mini-val" id="detail-m1"></div></div>
+              <div class="detail-mini-card"><div class="detail-mini-label" id="detail-m2-label"></div><div class="detail-mini-val" id="detail-m2"></div></div>
               <div class="detail-mini-card"><div class="detail-mini-label">Scanned</div><div class="detail-mini-val" id="detail-date"></div></div>
             </div>
+
             <div class="detail-box">
-              <div class="detail-label" style="margin-bottom:11px">Reasons flagged</div>
+              <div class="detail-label" style="margin-bottom:11px" id="detail-reasons-label">Reasons flagged</div>
               <div id="detail-reasons" style="display:flex;flex-direction:column;gap:9px"></div>
             </div>
-            <div class="detail-box">
+
+            <!-- ── Damage-only: per-side breakdown ── -->
+            <div class="detail-box" id="detail-findings-box">
+              <div class="detail-label" style="margin-bottom:4px">Damage found by side</div>
+              <div id="detail-findings"></div>
+              <div class="model-note" style="margin-top:14px">
+                The detector is trained on a single damage class, so it reports
+                <strong>where</strong> damage is and how confident it is, but not
+                which kind of damage it is. The type column will differentiate
+                dents, tears and similar only once the model is retrained with
+                per-type classes.
+              </div>
+            </div>
+
+            <!-- ── Label-only: ingredients + raw OCR ── -->
+            <div class="detail-box" id="detail-ingredients-box">
               <div class="detail-label" style="margin-bottom:9px">Ingredients</div>
               <div class="ingredients-text" id="detail-ingredients"></div>
             </div>
-            <div class="ocr-box">
+            <div class="ocr-box" id="detail-ocr-box">
               <div class="ocr-label">Extracted OCR text</div>
               <div class="ocr-text" id="detail-ocr"></div>
             </div>
@@ -396,16 +436,43 @@
 
   let allReports   = [];
   let visibleCount = 10;
-  let currentFilter = 'all';
+  let currentFilter = 'all';     // outcome: all | nc | banned
+  let currentType   = 'all';     // check type: all | LABEL | DAMAGE
   let currentReportId = null;
   const selectedIds = new Set();
 
   // ── HELPERS ──
   function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-  function fmtDate(iso){ if(!iso)return'—'; const d=new Date(iso); return d.toLocaleDateString('en-PH',{month:'numeric',day:'numeric',year:'numeric'})+' at '+d.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'})+' EST'; }
   function fmtShort(iso){ if(!iso)return'—'; return new Date(iso).toLocaleDateString('en-PH',{month:'short',day:'2-digit',year:'numeric'}); }
+
+  // Rows predating the label/damage split carry no scanType — they were all
+  // label checks, so that's what they fall back to.
+  function typeOf(r){ return r.scanType === 'DAMAGE' ? 'DAMAGE' : 'LABEL'; }
+  function isDamage(r){ return typeOf(r) === 'DAMAGE'; }
   function isBanned(r){ return r.status==='WARNING / BANNED'; }
-  function badgeFor(r){ const banned=isBanned(r); return { bg: banned?'#e05050':'#e0930a', label: banned?'BANNED':'NON-COMPLIANT' }; }
+
+  // A damage report is never "compliant"/"banned" — it's damaged or it
+  // wouldn't have been submitted, so it gets its own badge wording.
+  function badgeFor(r){
+    if(isDamage(r)) return { bg:'#1565c0', label:'DAMAGED' };
+    const banned = isBanned(r);
+    return { bg: banned?'#e05050':'#e0930a', label: banned?'BANNED':'NON-COMPLIANT' };
+  }
+
+  function pct(v){ return (v==null || isNaN(v)) ? '—' : Math.round(v*100)+'%'; }
+
+  // Null means the row predates the split and never reported label presence —
+  // that is not the same as "No".
+  function labelsPresentText(r){
+    if(r.allLabelsPresent === true)  return 'Yes';
+    if(r.allLabelsPresent === false) return 'No';
+    return 'Not recorded';
+  }
+
+  function damageTypeText(r){
+    return (Array.isArray(r.damageTypes) && r.damageTypes.length)
+      ? r.damageTypes.join(', ') : 'Damage';
+  }
   function placeholderIcon(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>'; }
 
   // ── LOAD FROM /api/reports ──
@@ -432,9 +499,22 @@
     const q    = document.getElementById('search-input').value.toLowerCase();
     const sort = document.getElementById('sort-select').value;
     let list   = [...allReports];
-    if(currentFilter==='nc')     list = list.filter(r=>!isBanned(r));
-    if(currentFilter==='banned') list = list.filter(r=>isBanned(r));
-    if(q) list = list.filter(r=>(r.productName||'').toLowerCase().includes(q)||(r.matchedKeyword||'').toLowerCase().includes(q)||(r.brand||'').toLowerCase().includes(q));
+
+    if(currentType!=='all') list = list.filter(r=>typeOf(r)===currentType);
+
+    // The outcome chips are label-check concepts, so they only narrow label
+    // rows — a damage row has no compliant/banned axis to filter on.
+    if(currentFilter==='nc')     list = list.filter(r=>!isDamage(r) && !isBanned(r));
+    if(currentFilter==='banned') list = list.filter(r=>!isDamage(r) && isBanned(r));
+
+    if(q) list = list.filter(r=>
+      (r.productName||'').toLowerCase().includes(q) ||
+      (r.matchedKeyword||'').toLowerCase().includes(q) ||
+      (r.detectedProductName||'').toLowerCase().includes(q) ||
+      (r.affectedSides||'').toLowerCase().includes(q) ||
+      (Array.isArray(r.damageTypes)?r.damageTypes.join(' '):'').toLowerCase().includes(q)
+    );
+
     if(sort==='oldest') list.sort((a,b)=>new Date(a.scannedAt)-new Date(b.scannedAt));
     return list;
   }
@@ -443,6 +523,29 @@
     currentFilter = f;
     ['all','nc','banned'].forEach(k=>document.getElementById('chip-'+k).classList.toggle('active', k===f));
     renderReports();
+  }
+
+  function setTypeFilter(t){
+    currentType = t;
+    ['all','LABEL','DAMAGE'].forEach(k=>
+      document.getElementById('type-'+(k==='all'?'all':k.toLowerCase()))
+        .classList.toggle('active', k===t));
+
+    // Outcome chips are meaningless on damage-only, and leaving one active
+    // would silently empty the list. Reset and hide them.
+    const outcomeChips = document.getElementById('outcome-chips');
+    if(t==='DAMAGE'){
+      if(currentFilter!=='all') setFilterSilently('all');
+      outcomeChips.style.display = 'none';
+    } else {
+      outcomeChips.style.display = '';
+    }
+    renderReports();
+  }
+
+  function setFilterSilently(f){
+    currentFilter = f;
+    ['all','nc','banned'].forEach(k=>document.getElementById('chip-'+k).classList.toggle('active', k===f));
   }
 
   // ── RENDER REPORTS LIST ──
@@ -471,8 +574,24 @@
       row.onkeydown = (e)=>{ if(e.key==='Enter'){ e.preventDefault(); openDetail(r.id); } };
 
       const thumbHtml = r.imageBase64
-        ? '<img src="'+r.imageBase64+'" alt="Label photo for '+esc(r.productName||'product')+'"/>'
+        ? '<img src="'+r.imageBase64+'" alt="Photo for '+esc(r.productName||'product')+'"/>'
         : placeholderIcon();
+
+      const damage = isDamage(r);
+      const typeBadge = '<span class="type-badge '+(damage?'damage':'label')+'">'+
+        (damage?'DAMAGE':'LABEL')+'</span>';
+
+      // Only the fields that belong to this kind of report.
+      const detail = damage
+        ? '<span class="row-matched">'+esc(damageTypeText(r))+' on <strong>'+
+            esc(r.affectedSides||'unspecified side(s)')+'</strong></span>'+
+          '<span class="row-dot">•</span>'+
+          '<span class="row-matched">'+pct(r.maxConfidence)+' confidence</span>'
+        : '<span class="row-matched">'+esc(r.detectedProductName||r.productName||'—')+'</span>'+
+          '<span class="row-dot">•</span>'+
+          '<span class="row-matched">Exp: <strong>'+esc(r.expiration||'—')+'</strong></span>'+
+          '<span class="row-dot">•</span>'+
+          '<span class="row-matched">All labels: <strong>'+labelsPresentText(r)+'</strong></span>';
 
       row.innerHTML =
         '<div class="row-check'+(checked?' checked':'')+'" role="checkbox" tabindex="0" aria-checked="'+(checked?'true':'false')+'" aria-label="Select '+esc(r.productName||'report')+'" onclick="toggleCheck(event,\''+esc(r.id)+'\')" onkeydown="checkKey(event,\''+esc(r.id)+'\')"></div>'+
@@ -480,10 +599,9 @@
         '<div class="row-mid">'+
           '<div class="row-name">'+esc(r.productName||'Unnamed Product')+'</div>'+
           '<div class="row-meta">'+
+            typeBadge+
             '<span class="badge" style="background:'+badgeBg+'">'+badgeLabel+'</span>'+
-            '<span class="row-brand">'+esc(r.brand||'—')+'</span>'+
-            '<span class="row-dot">•</span>'+
-            '<span class="row-matched">Matched: <strong>'+esc(r.matchedKeyword||'—')+'</strong></span>'+
+            detail+
           '</div>'+
         '</div>'+
         '<div class="row-right">'+
@@ -501,29 +619,45 @@
 
   // ── DASHBOARD STATS ──
   function updateDashboard(){
-    const nc    = allReports.filter(r=>!isBanned(r)).length;
-    const bn    = allReports.filter(r=>isBanned(r)).length;
+    const labelRows = allReports.filter(r=>!isDamage(r));
+    const nc    = labelRows.filter(r=>!isBanned(r)).length;
+    const bn    = labelRows.filter(r=>isBanned(r)).length;
+    const dmg   = allReports.filter(isDamage).length;
     const total = allReports.length;
 
     document.getElementById('stat-total').textContent   = total.toLocaleString();
     document.getElementById('stat-nc').textContent      = nc.toLocaleString();
     document.getElementById('stat-banned').textContent  = bn.toLocaleString();
+    document.getElementById('stat-damaged').textContent = dmg.toLocaleString();
     document.getElementById('leg-nc').textContent       = nc.toLocaleString();
     document.getElementById('leg-bn').textContent       = bn.toLocaleString();
+    document.getElementById('leg-dmg').textContent      = dmg.toLocaleString();
     document.getElementById('donut-num').textContent    = total>=1000?(total/1000).toFixed(1)+'K':total||'—';
 
-    // donut
+    // Donut: one arc per outcome, laid end to end around the ring.
     const circ = 2*Math.PI*46;
     const svg  = document.getElementById('donut-svg');
     if(total===0){ svg.innerHTML='<circle cx="60" cy="60" r="46" fill="none" stroke="#eef1ee" stroke-width="17"/>'; return; }
+
     const gap = 2;
-    const ncFrac = nc/total, bnFrac = bn/total;
-    const ncLen = Math.max(0, ncFrac*circ - gap);
-    const bnLen = Math.max(0, bnFrac*circ - gap);
-    svg.innerHTML =
-      '<circle cx="60" cy="60" r="46" fill="none" stroke="#eef1ee" stroke-width="17"/>'+
-      '<circle cx="60" cy="60" r="46" fill="none" stroke="#e0930a" stroke-width="17" stroke-linecap="round" stroke-dasharray="'+ncLen+' '+circ+'" stroke-dashoffset="0"/>'+
-      '<circle cx="60" cy="60" r="46" fill="none" stroke="#e05050" stroke-width="17" stroke-linecap="round" stroke-dasharray="'+bnLen+' '+circ+'" stroke-dashoffset="'+(-(ncFrac*circ))+'"/>';
+    const segments = [
+      { value: nc,  color: '#e0930a' },
+      { value: bn,  color: '#e05050' },
+      { value: dmg, color: '#1565c0' },
+    ];
+
+    let offset = 0;
+    let arcs = '<circle cx="60" cy="60" r="46" fill="none" stroke="#eef1ee" stroke-width="17"/>';
+    segments.forEach(seg=>{
+      if(seg.value===0) return;
+      const frac = seg.value/total;
+      const len  = Math.max(0, frac*circ - gap);
+      arcs += '<circle cx="60" cy="60" r="46" fill="none" stroke="'+seg.color+
+              '" stroke-width="17" stroke-linecap="round" stroke-dasharray="'+len+' '+circ+
+              '" stroke-dashoffset="'+(-offset)+'"/>';
+      offset += frac*circ;
+    });
+    svg.innerHTML = arcs;
   }
 
   // ── ACTIONS ──
@@ -592,10 +726,36 @@
     renderReports();
   }
 
+  // One sheet covering both checks: shared columns first, then each type's
+  // own, blank where they don't apply.
   function exportCSV(){
-    const rows = [['ID','Product','Status','Keyword','Date'],
-      ...getFiltered().map(r=>[r.id,r.productName,r.status,r.matchedKeyword,r.scannedAt])];
-    const csv = rows.map(r=>r.map(v=>'"'+(v||'').toString().replace(/"/g,'""')+'"').join(',')).join('\n');
+    const header = ['ID','Type','Record Name','Status','Scanned',
+                    'Detected Product','Expiration','All Labels Present',
+                    'Damaged','Damage Type','Sides Affected','Damage Spots','Max Confidence',
+                    'Matched Keyword','Reasons'];
+
+    const rows = [header, ...getFiltered().map(r=>{
+      const damage = isDamage(r);
+      return [
+        r.id,
+        damage ? 'DAMAGE' : 'LABEL',
+        r.productName,
+        damage ? 'DAMAGED' : r.status,
+        r.scannedAt,
+        damage ? '' : (r.detectedProductName || ''),
+        damage ? '' : (r.expiration || ''),
+        damage ? '' : labelsPresentText(r),
+        damage ? 'Yes' : '',
+        damage ? damageTypeText(r) : '',
+        damage ? (r.affectedSides || '') : '',
+        damage ? (r.damageSpots ?? '') : '',
+        damage ? pct(r.maxConfidence) : '',
+        r.matchedKeyword || '',
+        Array.isArray(r.reasons) ? r.reasons.join(' | ') : '',
+      ];
+    })];
+
+    const csv = rows.map(r=>r.map(v=>'"'+(v==null?'':v).toString().replace(/"/g,'""')+'"').join(',')).join('\n');
     const a   = document.createElement('a');
     a.href    = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
     a.download= 'labelcheck-reports.csv';
@@ -605,7 +765,7 @@
   // ── NAV ──
   const titles = {
     dashboard: ['Dashboard', 'Compliance overview · Scan · Verify · Record'],
-    reports:   ['Reports', 'Historical compliance monitoring'],
+    reports:   ['Reports', 'Label checks and physical damage checks'],
   };
 
   function showPage(p){
@@ -616,11 +776,13 @@
     const navId = p==='detail' ? 'reports' : p;
     document.getElementById('nav-'+navId).classList.add('active');
 
-    const t = p==='detail'
-      ? [document.getElementById('detail-name').textContent, 'Report detail']
-      : (titles[p] || titles.dashboard);
-    document.getElementById('page-title').textContent = t[0];
-    document.getElementById('page-subtitle').textContent = t[1];
+    // renderDetail() already set a type-specific title/subtitle for the detail
+    // page, so don't clobber it here.
+    if(p!=='detail'){
+      const t = titles[p] || titles.dashboard;
+      document.getElementById('page-title').textContent = t[0];
+      document.getElementById('page-subtitle').textContent = t[1];
+    }
 
     if(p==='reports') renderReports();
     if(p!=='detail') currentReportId = null;
@@ -637,20 +799,45 @@
     const r = allReports.find(x=>x.id===id);
     if(!r) return;
 
+    const damage = isDamage(r);
     const { bg: badgeBg, label: badgeLabel } = badgeFor(r);
+    const name = r.productName || 'Unnamed Record';
 
-    document.getElementById('page-title').textContent = r.productName || 'Unnamed Product';
-    document.getElementById('page-subtitle').textContent = 'Report detail';
+    document.getElementById('page-title').textContent = name;
+    document.getElementById('page-subtitle').textContent =
+      damage ? 'Physical damage check' : 'Label check';
 
-    document.getElementById('detail-name').textContent = r.productName || 'Unnamed Product';
-    document.getElementById('detail-brand-main').textContent = r.brand || '—';
-    document.getElementById('detail-brand').textContent = r.brand || '—';
-    document.getElementById('detail-expiration').textContent = r.expiration || '—';
+    document.getElementById('detail-name').textContent = name;
+    document.getElementById('detail-subtitle').textContent =
+      damage ? 'Physical damage check' : 'Label compliance check';
     document.getElementById('detail-date').textContent = fmtShort(r.scannedAt);
-    document.getElementById('detail-keyword').textContent = r.matchedKeyword || '—';
-    document.getElementById('detail-keyword').style.color = badgeBg;
-    document.getElementById('detail-ingredients').textContent = r.ingredients || '—';
-    document.getElementById('detail-ocr').textContent = r.extractedText || '(no text extracted)';
+
+    // The two headline figures differ per check.
+    const m1Label = document.getElementById('detail-m1-label');
+    const m2Label = document.getElementById('detail-m2-label');
+    const m1 = document.getElementById('detail-m1');
+    const m2 = document.getElementById('detail-m2');
+    if(damage){
+      m1Label.textContent = 'Sides affected';
+      m1.textContent = r.affectedSides || '—';
+      m2Label.textContent = 'Damage spots';
+      m2.textContent = (r.damageSpots ?? '—') + (r.maxConfidence!=null ? ' · '+pct(r.maxConfidence) : '');
+      // Clear any red left over from a previously viewed label report.
+      m2.style.color = 'var(--text)';
+    } else {
+      m1Label.textContent = 'Expiration date';
+      m1.textContent = r.expiration || '—';
+      m2Label.textContent = 'All labels present';
+      m2.textContent = labelsPresentText(r);
+      m2.style.color = r.allLabelsPresent === false ? 'var(--banned)' : 'var(--text)';
+    }
+
+    // Left column: keyword card doubles as the damage-type card.
+    document.getElementById('detail-keyword-label').textContent =
+      damage ? 'Damage type' : 'Matched keyword';
+    const kw = document.getElementById('detail-keyword');
+    kw.textContent = damage ? damageTypeText(r) : (r.matchedKeyword || '—');
+    kw.style.color = badgeBg;
 
     const badgeEl = document.getElementById('detail-badge');
     badgeEl.textContent = badgeLabel;
@@ -659,18 +846,63 @@
     const imgEl = document.getElementById('detail-img');
     imgEl.style.background = '#eef1ee';
     imgEl.innerHTML = r.imageBase64
-      ? '<img src="'+r.imageBase64+'" alt="Label photo for '+esc(r.productName||'product')+'"/>'
+      ? '<img src="'+r.imageBase64+'" alt="Photo for '+esc(name)+'"/>'
       : placeholderIcon();
 
+    document.getElementById('detail-reasons-label').textContent =
+      damage ? 'What the detector found' : 'Reasons flagged';
     const reasonsEl = document.getElementById('detail-reasons');
-    const reasons = Array.isArray(r.reasons) && r.reasons.length ? r.reasons : ['No specific reasons recorded.'];
+    const reasons = Array.isArray(r.reasons) && r.reasons.length
+      ? r.reasons : ['No specific reasons recorded.'];
+    const reasonColor = damage ? '#1565c0' : '#e05050';
     reasonsEl.innerHTML = reasons.map(reason =>
       '<div class="reason-row">'+
-        '<svg viewBox="0 0 24 24" fill="none" stroke="#e05050" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4m0 4h.01"/></svg>'+
+        '<svg viewBox="0 0 24 24" fill="none" stroke="'+reasonColor+'" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4m0 4h.01"/></svg>'+
         '<span class="reason-text">'+esc(reason)+'</span>'+
       '</div>'
     ).join('');
+
+    // Show only the half of the page that applies to this check.
+    document.getElementById('detail-findings-box').style.display    = damage ? '' : 'none';
+    document.getElementById('detail-ingredients-box').style.display = damage ? 'none' : '';
+    document.getElementById('detail-ocr-box').style.display         = damage ? 'none' : '';
+
+    if(damage){
+      renderFindings(r);
+    } else {
+      document.getElementById('detail-ingredients').textContent = r.ingredients || '—';
+      document.getElementById('detail-ocr').textContent = r.extractedText || '(no text extracted)';
+    }
   }
+
+  // Per-side damage breakdown. Falls back to a summary line for rows stored
+  // before findings were captured.
+  function renderFindings(r){
+    const el = document.getElementById('detail-findings');
+    const findings = Array.isArray(r.findings) ? r.findings : [];
+
+    if(findings.length === 0){
+      el.innerHTML = '<div class="finding-row"><span class="finding-text">'+
+        esc(damageTypeText(r))+' detected on '+esc(r.affectedSides||'unspecified side(s)')+
+        '. No per-side breakdown was recorded for this report.</span></div>';
+      return;
+    }
+
+    el.innerHTML = findings.map(f=>{
+      const spots = (f.spotCount===1?'1 spot':(f.spotCount||0)+' spots');
+      return '<div class="finding-row">'+
+        '<span class="finding-side">'+esc(sideName(f.slot))+'</span>'+
+        '<span class="finding-text">'+esc(f.label||'Damage')+' · '+spots+'</span>'+
+        '<span class="finding-conf">'+pct(f.confidence)+'</span>'+
+      '</div>';
+    }).join('');
+  }
+
+  // The app stores a slot as its photo filename; map it back to a side name.
+  const SIDE_NAMES = {
+    box_front:'Front', box_side1:'Side 1', box_side2:'Side 2', box_back:'Back',
+  };
+  function sideName(slot){ return SIDE_NAMES[slot] || slot || '—'; }
 
   // ── INIT ──
   // (Live updates come from polling /api/reports every 30s below —
