@@ -1,41 +1,94 @@
-# LabelCheck Dashboard — Vercel + Supabase
+# CheckMuna Dashboard — Vercel + Supabase
 
-## Two report types
+## Three scan flows, four tables
 
-The app runs two **independent** inspections and submits a different payload
-for each. Every row carries `scanType`, and the dashboard reads that first —
-a row shows one half of the schema or the other, never both.
+The app has three entry points and every record says which one produced it
+via `kind`:
 
-| | `LABEL` | `DAMAGE` |
+| `kind` | Flow | Halves stored |
 |---|---|---|
-| Produced by | Label Check (3 label close-ups → OCR → FDA advisories) | Physical Damage Check (4 box sides → YOLO11n) |
-| Stored | `detected_product_name`, `expiration`, `all_labels_present`, `ingredients`, `extracted_text` | `is_damaged`, `damage_types`, `affected_sides`, `damage_spots`, `max_confidence`, `findings` |
-| Outcome | `COMPLIANT` / `NON-COMPLIANT` / `WARNING / BANNED` | damaged or not |
-| Stored when | status is non-compliant or banned | damage was actually found |
+| `label` | Check Labels — 3 close-ups → OCR → FDA advisories | label only |
+| `damage` | Damage Detection — 4 packaging photos → detector | damage only |
+| `both` | Inspection Mode — label check *then* packaging photos, saved as **one** record | both |
 
-`product_name` is shared: it's the name the user saved the record under, not
-anything read off a label. For label checks the OCR'd name is
-`detected_product_name`.
+That last one is why the schema is split across tables rather than one wide
+row: an inspection genuinely has both halves, so a flat row would need every
+column of both and no way to say which half actually ran. Here a half exists
+iff its row exists.
 
-**The damage model is single-class.** It reports *that* packaging is damaged,
-which sides, how many spots, and with what confidence — but not what kind of
-damage. `damage_types` will read `Damage` for every row until the model is
-retrained with per-type classes; nothing on the website needs to change when
-it is, since the class name flows straight through.
+```
+reports                    1 row  per scan          (always)
+report_label_checks        0..1   per scan          (kind label/both)
+report_damage_checks       0..1   per scan          (kind damage/both)
+report_damage_detections   0..N   per damage check  (one row per detection)
+```
+
+Children declare `on delete cascade`, so deleting a report cleans up the rest.
+
+`product_name` is on the parent and shared: it's the name the user saved the
+record under, not anything read off a label. The OCR'd name is
+`report_label_checks.detected_product_name`.
+
+### Packaging types
+
+Damage scans carry `packaging_type` — `box`, `foil` or `bottle`, picked by
+the user before the camera opens. Only **box** has a trained detector today;
+foil and bottle are captured and stored but report `available = false`.
+
+That flag matters: `available = false` means the check could not run, which
+is **not** the same as `available = true, is_damaged = false` (a real clean
+result). Keep them apart or "no damage found" counts get inflated by scans
+that never ran. The dashboard renders them as "Check unavailable" vs "No
+damage detected".
+
+### Detections
+
+The box detector is two-class — `Dent` and `Scratches`. Each surviving
+detection is one row in `report_damage_detections`, so two dents and one
+scratch is three rows, and the API returns both the ordered list and a
+per-class count (`{Dent: 2, Scratches: 1}`).
 
 ### Deploying the schema
 
 Run `supabase-schema.sql` in the Supabase SQL Editor.
 
-⚠ It **drops and recreates** the `reports` table — running it wipes the
-dashboard. That's deliberate: the label/damage split changed the shape of a
-report enough that a clean table beats migrating. Run it once, before
-deploying the API, and don't re-run it against a project holding data you
-want.
+⚠ It **drops and recreates all four tables** — running it wipes the
+dashboard. Run it once, before deploying the API, and don't re-run it
+against a project holding data you want.
 
-The dashboard still tolerates rows with no `scan_type` (it treats them as
-label checks) and with `all_labels_present = null` (shown as "Not recorded",
-not "No"), so restoring an older backup won't break the UI.
+### What the app sends
+
+`ReportService` posts every saved scan, including compliant and no-damage
+ones — the dashboard needs clean results to show a ratio against.
+
+```jsonc
+{
+  "id": "<epoch_ms>_<name hash>",
+  "kind": "label" | "damage" | "both",
+  "packagingType": "box" | "foil" | "bottle" | null,
+  "productName": "<record name>",
+  "status": "COMPLIANT" | "NON-COMPLIANT" | "WARNING / BANNED",
+  "matchedKeyword": "...",
+  "reasons": ["..."],
+  "scannedAt": "<iso8601>",
+  "imageBase64": "data:image/jpeg;base64,...",   // optional, ≤200 KB
+
+  "label": {                    // omitted when kind = "damage"
+    "detectedProductName": "...",
+    "expiration": "...",
+    "ingredients": "...",
+    "extractedText": "..."
+  },
+
+  "damage": {                   // omitted when kind = "label"
+    "available": true,
+    "message": "...",
+    "isDamaged": true,
+    "detections": ["Dent", "Dent", "Scratches"],
+    "maxConfidence": 0.82
+  }
+}
+```
 
 ## What changed from the original
 
@@ -68,8 +121,8 @@ routes will error out (they need `SUPABASE_URL` and
 
 1. Create a free project at supabase.com.
 2. Open the SQL Editor and run the contents of `supabase-schema.sql`
-   (creates the `reports` table and both report types' columns). Safe to
-   re-run on an existing project — see "Upgrading an existing deployment".
+   (creates all four tables). This DROPS existing data — see
+   "Deploying the schema" above.
 3. Go to Project Settings → API and copy:
    - Project URL → `SUPABASE_URL`
    - `service_role` secret key → `SUPABASE_SERVICE_ROLE_KEY`

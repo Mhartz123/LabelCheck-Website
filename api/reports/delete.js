@@ -16,6 +16,9 @@ module.exports = async (req, res) => {
 
   try {
     const supabase = getClient();
+    // Deleting the parent is enough — report_label_checks,
+    // report_damage_checks and report_damage_detections all declare
+    // "on delete cascade" against reports(id).
     const { error } = await supabase.from('reports').delete().in('id', ids);
     if (error) throw error;
 
