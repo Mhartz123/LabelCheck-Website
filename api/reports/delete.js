@@ -1,8 +1,8 @@
 const { getClient } = require('../../lib/supabase');
+const { requireAuth } = require('../../lib/auth');
 
-module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+module.exports = requireAuth(async (req, res) => {
+  // Dashboard-only, same origin — see the note in api/reports.js.
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') {
     return res.status(405).json({ ok: false, reason: 'method not allowed' });
@@ -22,10 +22,10 @@ module.exports = async (req, res) => {
     const { error } = await supabase.from('reports').delete().in('id', ids);
     if (error) throw error;
 
-    console.log(`[-] Deleted ${ids.length} report(s)`);
+    console.log(`[-] ${req.user.username} deleted ${ids.length} report(s)`);
     return res.status(200).json({ ok: true, deleted: ids.length });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ ok: false, reason: 'database error' });
   }
-};
+});

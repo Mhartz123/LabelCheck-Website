@@ -195,9 +195,36 @@
     .yes-no{display:inline-flex;align-items:center;gap:6px;font-weight:800}
     .yes-no.bad{color:var(--banned)}
     .yes-no.good{color:var(--green)}
+
+    /* ══ AUTH ══ */
+    /* The app stays hidden until /api/auth/me answers, so a signed-out
+       visitor never sees a frame of the dashboard before the redirect. */
+    .app{visibility:hidden}
+    body.authed .app{visibility:visible}
+    .gate{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+    body.authed .gate{display:none}
+    .gate-logo{width:52px;height:52px;border-radius:14px;background:var(--green);display:flex;align-items:center;justify-content:center;animation:lc-pulse 1.6s infinite}
+    .gate-logo svg{width:28px;height:28px}
+    .gate-text{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.3px}
+
+    .account{display:flex;align-items:center;gap:11px;padding-left:16px;margin-left:2px;border-left:1px solid var(--border)}
+    .account-avatar{width:34px;height:34px;border-radius:50%;background:var(--green-light);border:1px solid #b6e8c8;color:var(--green);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex:none}
+    .account-name{font-size:13px;font-weight:700;line-height:1.25}
+    .account-role{font-size:11px;color:var(--muted);text-transform:capitalize}
+    .signout{display:flex;align-items:center;gap:6px;background:#f5f6f5;border:1.5px solid var(--border);border-radius:8px;padding:8px 13px;font-size:12.5px;font-weight:700;color:#414a43;cursor:pointer}
+    .signout:hover{background:#eaece9}
+    .signout:disabled{opacity:.5;cursor:not-allowed}
+    .signout svg{width:15px;height:15px}
+    @media (max-width:760px){.account-meta{display:none}}
   </style>
 </head>
 <body>
+<div class="gate" id="gate" role="status" aria-live="polite">
+  <div class="gate-logo">
+    <svg viewBox="0 0 40 40" fill="none" aria-hidden="true"><rect x="4" y="4" width="12" height="12" rx="2" stroke="#fff" stroke-width="2.6"/><rect x="4" y="24" width="12" height="12" rx="2" stroke="#fff" stroke-width="2.6"/><rect x="24" y="4" width="12" height="12" rx="2" stroke="#fff" stroke-width="2.6"/><rect x="24" y="24" width="6" height="6" rx="1" fill="#fff"/><rect x="30" y="24" width="6" height="6" rx="1" fill="#fff" opacity=".4"/><rect x="24" y="30" width="6" height="6" rx="1" fill="#fff" opacity=".4"/><rect x="30" y="30" width="6" height="6" rx="1" fill="#fff" opacity=".7"/></svg>
+  </div>
+  <div class="gate-text" id="gate-text">Checking your session…</div>
+</div>
 <div class="app">
 
   <!-- SIDEBAR -->
@@ -226,6 +253,18 @@
       <div class="live-badge">
         <div class="live-dot"></div>
         <span id="live-text">Connecting…</span>
+      </div>
+
+      <div class="account">
+        <div class="account-avatar" id="account-avatar" aria-hidden="true">–</div>
+        <div class="account-meta">
+          <div class="account-name" id="account-name">—</div>
+          <div class="account-role" id="account-role"></div>
+        </div>
+        <button class="signout" id="signout-btn" onclick="signOut()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 17l5-5-5-5M21 12H9M12 3H6a2 2 0 00-2 2v14a2 2 0 002 2h6"/></svg>
+          Sign out
+        </button>
       </div>
     </header>
 
@@ -526,6 +565,9 @@
   async function loadReports(){
     try {
       const res = await fetch(SERVER + '/api/reports');
+      // The session can end mid-session (expiry, sign-out elsewhere, the
+      // account being switched off), and the 30s poll is where we notice.
+      if (res.status === 401) return toLogin();
       const json = await res.json();
       if (!json.ok) throw new Error(json.reason || 'request failed');
 
@@ -812,6 +854,7 @@
         headers: { 'Content-Type':'application/json' },
         body:    JSON.stringify({ ids })
       });
+      if(res.status === 401) return toLogin();
       const json = await res.json();
       if(!json.ok) throw new Error(json.reason || 'delete failed');
 
@@ -1037,11 +1080,62 @@
     noteEl.style.display = 'none';
   }
 
+  // ══ AUTH ══
+
+  let pollTimer = null;
+
+  /** Hand the browser to the login page, remembering where it was. */
+  function toLogin(){
+    if (pollTimer) clearInterval(pollTimer);
+    const next = encodeURIComponent(location.pathname + location.search);
+    location.replace('/login.html?next=' + next);
+  }
+
+  function showAccount(user){
+    const name = user.fullName || user.username;
+    document.getElementById('account-name').textContent   = name;
+    document.getElementById('account-role').textContent   = user.role || '';
+    document.getElementById('account-avatar').textContent =
+      (name.trim()[0] || '?').toUpperCase();
+  }
+
+  async function signOut(){
+    const btn = document.getElementById('signout-btn');
+    btn.disabled = true;
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch(e){
+      console.error(e);   // the redirect below still gets them out
+    }
+    toLogin();
+  }
+
   // ── INIT ──
-  // (Live updates come from polling /api/reports every 30s below —
-  // no direct browser-to-Supabase connection needed or used.)
-  loadReports();
-  setInterval(loadReports, 30000);
+  // Nothing starts until the session checks out: no report fetch, no poll,
+  // and the dashboard stays hidden behind the splash until then.
+  // (Live updates are a 30s poll of /api/reports — the browser never talks
+  // to Supabase directly.)
+  async function start(){
+    let res;
+    try {
+      res = await fetch('/api/auth/me');
+    } catch(e){
+      console.error(e);
+      document.getElementById('gate-text').textContent =
+        'Can’t reach the server. Refresh to try again.';
+      return;
+    }
+    if (!res.ok) return toLogin();
+
+    const json = await res.json();
+    showAccount(json.user || {});
+    document.body.classList.add('authed');
+
+    loadReports();
+    pollTimer = setInterval(loadReports, 30000);
+  }
+
+  start();
 </script>
 </body>
 </html>

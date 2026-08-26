@@ -1,4 +1,5 @@
 const { getClient } = require('../lib/supabase');
+const { requireAuth } = require('../lib/auth');
 
 // PostgREST embedded selects — one round trip pulls each report with its
 // label half, damage half, and detection rows. Relies on the foreign keys
@@ -29,9 +30,10 @@ function one(v) {
  * half wasn't run. The dashboard reads `kind` and renders the halves that
  * are present, so an inspection record shows both.
  */
-module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+module.exports = requireAuth(async (req, res) => {
+  // No CORS headers: unlike /api/report (which the phone posts to from
+  // another origin) this is read by the dashboard on its own origin, and
+  // the session cookie wouldn't be sent cross-site anyway.
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'GET') {
     return res.status(405).json({ ok: false, reason: 'method not allowed' });
@@ -98,4 +100,4 @@ module.exports = async (req, res) => {
     console.error(err);
     return res.status(500).json({ ok: false, reason: 'database error' });
   }
-};
+});

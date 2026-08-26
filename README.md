@@ -90,6 +90,64 @@ ones — the dashboard needs clean results to show a ratio against.
 }
 ```
 
+## Signing in
+
+The dashboard is behind a login; the app's upload endpoint is not.
+
+| Route | Who calls it | Auth |
+|---|---|---|
+| `POST /api/report` | the Flutter app | open — the phone has no account to sign in with |
+| `GET /api/reports` | the dashboard | session cookie required |
+| `POST /api/reports/delete` | the dashboard | session cookie required |
+| `POST /api/auth/login` · `logout` · `GET /api/auth/me` | the login screen | — |
+
+Opening `/` with no valid session bounces to `/login.html?next=…`; signing
+in returns you to where you were headed. The 30-second report poll notices
+a session that ends mid-visit (expiry, sign-out elsewhere, account
+switched off) and bounces the same way.
+
+### Two tables
+
+```
+dashboard_users      one row per person who can open the dashboard
+dashboard_sessions   one row per active browser sign-in
+```
+
+Passwords are never stored — `password_hash` holds a scrypt digest
+(`scrypt$<salt>$<hash>`, verified in constant time). Sessions work the same
+way round: the browser holds a random token in an `HttpOnly; Secure;
+SameSite=Lax` cookie and only its SHA-256 is in the table, so the table
+can't be replayed as a login and "sign out" is a real server-side delete
+rather than just dropping the cookie.
+
+Five failed attempts freeze an account for 15 minutes. That counter lives
+on the row rather than in memory because serverless functions don't share
+memory between invocations. Unknown username, wrong password and
+deactivated account all answer with the same message, so the login can't
+be used to find out which usernames exist.
+
+"Keep me signed in" means a 7-day session; unticked it's 12 hours and the
+cookie is dropped when the browser closes.
+
+### Setting it up
+
+1. Run `supabase-auth-schema.sql` in the Supabase SQL Editor. Unlike
+   `supabase-schema.sql` it's all `if not exists`, so re-running it won't
+   wipe accounts.
+2. Make the first account — on your own machine, so the plaintext password
+   never reaches Supabase or its query logs:
+
+   ```
+   node scripts/create-user.js admin "your-password" "Maria Santos" admin
+   ```
+
+   That prints an `insert … on conflict do update` statement; paste it into
+   the SQL Editor. Re-running it for an existing username resets that
+   account's password and clears any lockout.
+
+There is deliberately no sign-up endpoint — accounts are created by hand,
+so nothing on the public internet can mint a login for the dashboard.
+
 ## What changed from the original
 
 The original `labelcheck_server.js` was a single long-running Node process
@@ -106,7 +164,10 @@ This version splits things up:
 - `api/report.js` — `POST /api/report` (used by the Flutter app)
 - `api/reports.js` — `GET /api/reports` (used by the dashboard)
 - `api/reports/delete.js` — `POST /api/reports/delete`
+- `login.html` — the sign-in screen
+- `api/auth/login.js`, `api/auth/logout.js`, `api/auth/me.js` — the login API
 - `lib/supabase.js` — shared Supabase client
+- `lib/auth.js` — password hashing, session cookies, the `requireAuth` wrapper
 - `legacy-local-server.js` — your old server, kept for reference only,
   not used in deployment.
 
@@ -121,8 +182,10 @@ routes will error out (they need `SUPABASE_URL` and
 
 1. Create a free project at supabase.com.
 2. Open the SQL Editor and run the contents of `supabase-schema.sql`
-   (creates all four tables). This DROPS existing data — see
-   "Deploying the schema" above.
+   (creates all four report tables). This DROPS existing data — see
+   "Deploying the schema" above. Then run `supabase-auth-schema.sql`
+   (the two login tables) and create your first account — see
+   "Signing in" above.
 3. Go to Project Settings → API and copy:
    - Project URL → `SUPABASE_URL`
    - `service_role` secret key → `SUPABASE_SERVICE_ROLE_KEY`

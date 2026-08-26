@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign in · CheckMuna</title>
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    /* Same tokens as the dashboard so the two pages read as one product. */
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--green:#1a7a3c;--green-dark:#136030;--green-light:#e8f5ee;--banned:#e05050;--border:#e4e7e4;--text:#141a16;--muted:#8a938c;--bg:#eef0ee}
+    html,body{height:100%;font-family:'Public Sans',system-ui,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+    button{font-family:inherit}
+    @keyframes lc-pulse{0%,100%{opacity:1}50%{opacity:.35}}
+    @keyframes lc-spin{to{transform:rotate(360deg)}}
+
+    .auth{display:flex;min-height:100vh}
+
+    /* ══ BRAND PANEL ══ */
+    /* Same #0f2b19 as the dashboard sidebar — signing in should feel like
+       stepping into the app, not through a bolted-on gate. */
+    .brand{width:44%;max-width:560px;flex:none;background:#0f2b19;color:#fff;padding:44px 48px;display:flex;flex-direction:column}
+    .brand-logo{width:52px;height:52px;border-radius:14px;background:var(--green);display:flex;align-items:center;justify-content:center}
+    .brand-logo svg{width:28px;height:28px}
+    .brand-mid{flex:1;display:flex;flex-direction:column;justify-content:center;padding:40px 0;gap:14px}
+    .brand-name{font-size:40px;font-weight:800;letter-spacing:-.03em;line-height:1.05}
+    .brand-tag{font-size:15px;line-height:1.65;color:#a9c6b6;max-width:34ch}
+    .brand-list{display:flex;flex-direction:column;gap:14px;margin-top:20px}
+    .brand-item{display:flex;align-items:flex-start;gap:12px}
+    .brand-item-icon{width:34px;height:34px;flex:none;border-radius:10px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center}
+    .brand-item-icon svg{width:17px;height:17px}
+    .brand-item-title{font-size:14px;font-weight:700;letter-spacing:-.01em}
+    .brand-item-sub{font-size:12.5px;color:#8fb39d;margin-top:2px;line-height:1.5}
+    .brand-foot{display:flex;align-items:center;gap:9px;font-size:12px;color:#7fa791}
+    .brand-dot{width:7px;height:7px;border-radius:50%;background:#4ec27d;animation:lc-pulse 2s infinite;flex:none}
+
+    /* ══ FORM SIDE ══ */
+    .form-side{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 32px;min-width:0}
+    .form-card{width:100%;max-width:400px}
+    .form-eyebrow{font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--green);background:var(--green-light);border:1px solid #b6e8c8;border-radius:20px;padding:4px 11px;display:inline-block}
+    .form-title{font-size:28px;font-weight:800;letter-spacing:-.025em;margin-top:16px}
+    .form-sub{font-size:13.5px;color:#6b7280;margin-top:7px;line-height:1.6}
+
+    .field{margin-top:18px}
+    .field label{display:block;font-size:11px;font-weight:700;color:#9ca3af;letter-spacing:.5px;text-transform:uppercase;margin-bottom:7px}
+    .input-wrap{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:0 14px;transition:border-color .15s,box-shadow .15s}
+    .input-wrap:focus-within{border-color:var(--green);box-shadow:0 0 0 3px rgba(26,122,60,.12)}
+    .input-wrap.invalid{border-color:var(--banned)}
+    .input-wrap > svg{width:17px;height:17px;flex:none}
+    .input-wrap input{flex:1;min-width:0;border:none;background:transparent;outline:none;font-family:inherit;font-size:14px;color:var(--text);padding:13px 0}
+    .input-wrap input::placeholder{color:#b6bcb7}
+    .peek{border:none;background:transparent;cursor:pointer;color:#9ca3af;padding:4px;display:flex;align-items:center;border-radius:6px}
+    .peek:hover{color:#414a43}
+
+    .form-row{display:flex;align-items:center;justify-content:space-between;margin-top:15px;gap:12px}
+    .remember{display:flex;align-items:center;gap:9px;cursor:pointer;font-size:13px;color:#414a43;user-select:none}
+    .remember input{position:absolute;opacity:0;width:0;height:0}
+    .box{width:18px;height:18px;border:1.5px solid #d1d5db;border-radius:4px;flex:none;display:flex;align-items:center;justify-content:center;background:#fff}
+    .remember input:checked + .box{background:var(--green);border-color:var(--green)}
+    .remember input:checked + .box::after{content:'✓';color:#fff;font-size:11px;font-weight:700}
+    .remember input:focus-visible + .box{outline:2px solid var(--green);outline-offset:2px}
+    .hint{font-size:12.5px;color:var(--muted)}
+
+    .submit{width:100%;margin-top:20px;background:var(--green);color:#fff;border:none;border-radius:10px;padding:14px;font-size:14px;font-weight:700;letter-spacing:.2px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;transition:background .15s}
+    .submit:hover:not(:disabled){background:var(--green-dark)}
+    .submit:disabled{opacity:.6;cursor:not-allowed}
+    .spinner{width:15px;height:15px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:lc-spin .7s linear infinite;display:none}
+    .submit.loading .spinner{display:block}
+
+    /* Same treatment as the dashboard's banned-product alert bar. */
+    .alert{display:none;margin-top:16px;background:#fdeaea;border:1px solid #f6cccc;border-radius:10px;padding:11px 14px;gap:9px;align-items:flex-start;font-size:12.5px;color:#c0392b;font-weight:500;line-height:1.5}
+    .alert.show{display:flex}
+    .alert svg{width:16px;height:16px;flex:none;fill:currentColor;margin-top:1px}
+
+    .form-note{margin-top:22px;padding-top:18px;border-top:1px solid var(--border);font-size:12px;color:var(--muted);line-height:1.6}
+    .form-copy{font-size:11px;color:#9ca3af;margin-top:10px}
+
+    :focus-visible{outline:2px solid var(--green);outline-offset:2px}
+
+    /* Below the split the brand panel becomes a slim header band. */
+    @media (max-width:860px){
+      .auth{flex-direction:column}
+      .brand{width:100%;max-width:none;padding:24px 24px 26px}
+      .brand-mid{padding:20px 0 0;gap:10px}
+      .brand-name{font-size:30px}
+      .brand-list,.brand-foot{display:none}
+      .form-side{padding:32px 24px 48px}
+    }
+  </style>
+</head>
+<body>
+<div class="auth">
+
+  <!-- ══ BRAND ══ -->
+  <aside class="brand">
+    <div class="brand-logo">
+      <svg viewBox="0 0 40 40" fill="none" aria-hidden="true"><rect x="4" y="4" width="12" height="12" rx="2" stroke="#fff" stroke-width="2.6"/><rect x="4" y="24" width="12" height="12" rx="2" stroke="#fff" stroke-width="2.6"/><rect x="24" y="4" width="12" height="12" rx="2" stroke="#fff" stroke-width="2.6"/><rect x="24" y="24" width="6" height="6" rx="1" fill="#fff"/><rect x="30" y="24" width="6" height="6" rx="1" fill="#fff" opacity=".4"/><rect x="24" y="30" width="6" height="6" rx="1" fill="#fff" opacity=".4"/><rect x="30" y="30" width="6" height="6" rx="1" fill="#fff" opacity=".7"/></svg>
+    </div>
+
+    <div class="brand-mid">
+      <h1 class="brand-name">CheckMuna</h1>
+      <p class="brand-tag">Compliance dashboard for label checks, packaging damage detection, and the records behind them.</p>
+
+      <div class="brand-list">
+        <div class="brand-item">
+          <div class="brand-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#8fe0ab" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
+          <div>
+            <div class="brand-item-title">Label checks</div>
+            <div class="brand-item-sub">OCR readings matched against FDA advisories.</div>
+          </div>
+        </div>
+        <div class="brand-item">
+          <div class="brand-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#8fe0ab" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15l-5-5L5 21"/><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/></svg></div>
+          <div>
+            <div class="brand-item-title">Damage detection</div>
+            <div class="brand-item-sub">Dents and scratches found on box packaging.</div>
+          </div>
+        </div>
+        <div class="brand-item">
+          <div class="brand-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#8fe0ab" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 12h6m-6 4h6M5 20h14a2 2 0 002-2V8l-5-5H5a2 2 0 00-2 2v13a2 2 0 002 2z"/></svg></div>
+          <div>
+            <div class="brand-item-title">Report archive</div>
+            <div class="brand-item-sub">Every scan the app saves, searchable and exportable.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="brand-foot"><span class="brand-dot"></span>Scan · Verify · Record</div>
+  </aside>
+
+  <!-- ══ SIGN IN ══ -->
+  <main class="form-side">
+    <div class="form-card">
+      <span class="form-eyebrow">Staff access</span>
+      <h2 class="form-title">Sign in to the dashboard</h2>
+      <p class="form-sub">Reports collected by the CheckMuna app are private. Use the account issued to you.</p>
+
+      <form id="login-form" novalidate>
+        <div class="field">
+          <label for="username">Username</label>
+          <div class="input-wrap" id="wrap-username">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <input id="username" name="username" type="text" autocomplete="username"
+                   placeholder="your.username" autocapitalize="none" spellcheck="false" required/>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <div class="input-wrap" id="wrap-password">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            <input id="password" name="password" type="password" autocomplete="current-password"
+                   placeholder="••••••••" required/>
+            <button type="button" class="peek" id="peek" aria-label="Show password" aria-pressed="false">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 12S5 5.5 12 5.5 22.5 12 22.5 12 19 18.5 12 18.5 1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label class="remember">
+            <input type="checkbox" id="remember" checked/>
+            <span class="box"></span>
+            Keep me signed in
+          </label>
+          <span class="hint" id="session-hint">7-day session</span>
+        </div>
+
+        <div class="alert" id="alert" role="alert" aria-live="polite">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+          <span id="alert-text"></span>
+        </div>
+
+        <button type="submit" class="submit" id="submit">
+          <span class="spinner" aria-hidden="true"></span>
+          <span id="submit-text">Sign in</span>
+        </button>
+      </form>
+
+      <p class="form-note">No self sign-up — accounts are created by the administrator. Contact them if you need access or get locked out.</p>
+      <p class="form-copy">© CheckMuna · Scan · Verify · Record</p>
+    </div>
+  </main>
+
+</div>
+
+<script>
+  const form     = document.getElementById('login-form');
+  const userEl   = document.getElementById('username');
+  const passEl   = document.getElementById('password');
+  const rememberEl = document.getElementById('remember');
+  const alertEl  = document.getElementById('alert');
+  const alertTxt = document.getElementById('alert-text');
+  const submitEl = document.getElementById('submit');
+  const submitTx = document.getElementById('submit-text');
+  const wrapUser = document.getElementById('wrap-username');
+  const wrapPass = document.getElementById('wrap-password');
+
+  // Where to land after signing in. Only a same-origin path is accepted, so
+  // a crafted ?next=https://evil.example can't make this an open redirect.
+  function nextPath(){
+    const raw = new URLSearchParams(location.search).get('next') || '/';
+    return (raw.startsWith('/') && !raw.startsWith('//')) ? raw : '/';
+  }
+
+  function showError(msg){
+    alertTxt.textContent = msg;
+    alertEl.classList.add('show');
+    wrapUser.classList.add('invalid');
+    wrapPass.classList.add('invalid');
+  }
+  function clearError(){
+    alertEl.classList.remove('show');
+    wrapUser.classList.remove('invalid');
+    wrapPass.classList.remove('invalid');
+  }
+  [userEl, passEl].forEach(el => el.addEventListener('input', clearError));
+
+  // Say what the tick actually buys — the server keeps the session for 7
+  // days when remembered, and only until the browser closes when not.
+  const hintEl = document.getElementById('session-hint');
+  rememberEl.addEventListener('change', () => {
+    hintEl.textContent = rememberEl.checked ? '7-day session' : 'Until browser closes';
+  });
+
+  // ── Show / hide password ──
+  document.getElementById('peek').addEventListener('click', (e) => {
+    const btn  = e.currentTarget;
+    const show = passEl.type === 'password';
+    passEl.type = show ? 'text' : 'password';
+    btn.setAttribute('aria-pressed', String(show));
+    btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    passEl.focus();
+  });
+
+  // ── Submit ──
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearError();
+
+    const username = userEl.value.trim();
+    const password = passEl.value;
+    if (!username || !password) {
+      showError('Enter your username and password.');
+      (username ? passEl : userEl).focus();
+      return;
+    }
+
+    submitEl.disabled = true;
+    submitEl.classList.add('loading');
+    submitTx.textContent = 'Signing in…';
+
+    try {
+      const res  = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, remember: rememberEl.checked }),
+      });
+      const json = await res.json().catch(() => ({}));
+
+      if (res.ok && json.ok) {
+        location.replace(nextPath());   // replace, so Back doesn't return here
+        return;
+      }
+      showError(json.reason || 'Incorrect username or password.');
+      passEl.value = '';
+      passEl.focus();
+    } catch {
+      showError('Can’t reach the server. Check your connection and try again.');
+    } finally {
+      submitEl.disabled = false;
+      submitEl.classList.remove('loading');
+      submitTx.textContent = 'Sign in';
+    }
+  });
+
+  // Already signed in? Skip the form entirely.
+  fetch('/api/auth/me').then(r => {
+    if (r.ok) location.replace(nextPath());
+    else userEl.focus();
+  }).catch(() => userEl.focus());
+</script>
+</body>
+</html>
