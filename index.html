@@ -73,23 +73,6 @@
     .legend-val{font-size:16px;font-weight:800}
     .legend-div{height:1px;background:#eef1ee}
 
-    .announce-header{display:flex;align-items:center;gap:11px;margin-bottom:16px}
-    .announce-icon{width:34px;height:34px;border-radius:9px;background:var(--green-light);display:flex;align-items:center;justify-content:center}
-    .announce-icon svg{width:18px;height:18px}
-    .announce-title{font-size:15px;font-weight:800;letter-spacing:-.01em}
-    .announce-item{border:1px solid var(--border);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:11px}
-    .announce-tag-row{display:flex;align-items:center;justify-content:space-between}
-    .announce-tag{font-size:11px;font-weight:700;color:var(--green);background:var(--green-light);padding:3px 9px;border-radius:5px}
-    .announce-date{font-size:11px;color:#9ca3af}
-    .announce-item-title{font-size:15px;font-weight:800;letter-spacing:-.01em;line-height:1.3}
-    .announce-body{font-size:13px;color:#6b7280;line-height:1.6}
-    .announce-actions{display:flex;gap:9px;margin-top:3px}
-    .btn-primary{background:var(--green);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer}
-    .btn-primary:hover{background:var(--green-dark)}
-    .btn-outline{background:#fff;color:#414a43;border:1.5px solid var(--border);border-radius:8px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer}
-    .btn-outline:hover{background:#f6f7f6}
-    .alert-bar{background:#fdeaea;border:1px solid #f6cccc;border-radius:10px;padding:11px 15px;display:flex;align-items:center;gap:9px;font-size:12.5px;color:#c0392b;font-weight:500;margin-top:16px}
-    .alert-bar svg{width:16px;height:16px;flex:none;fill:currentColor}
 
     .footer-strip{background:#fff;border:1px solid var(--border);border-radius:14px;padding:13px 22px;display:flex;align-items:center;gap:26px;flex-wrap:wrap;margin-top:16px}
     .footer-item{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#414a43}
@@ -192,9 +175,88 @@
     .finding-text{font-size:13.5px;color:#414a43;flex:1}
     .finding-conf{font-size:13px;font-weight:800;color:#414a43;flex:none}
     .model-note{background:var(--damage-light);border:1px solid #b3d4f5;border-radius:10px;padding:13px 16px;font-size:12.5px;color:#0d47a1;line-height:1.6}
+    /* Packaging photos. The frame is sized by the image itself rather than a
+       fixed aspect-ratio + object-fit, because the detection overlay is drawn
+       in the photo's own 0..1 space — cropping or letterboxing the image would
+       slide every box off the damage it marks. */
+    .photo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;align-items:start}
+    .photo-card{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#f5f6f5}
+    .photo-frame{position:relative;display:block;width:100%;border:none;padding:0;background:none;cursor:zoom-in;line-height:0}
+    .photo-frame img{display:block;width:100%;height:auto}
+    .photo-frame svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+    .photo-cap{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 11px;background:#fff;border-top:1px solid var(--border)}
+    .photo-slot{font-size:11.5px;font-weight:800;color:#414a43;letter-spacing:.3px;text-transform:uppercase}
+    .photo-hits{font-size:11.5px;font-weight:700;color:var(--muted2)}
+    .photo-hits.clean{color:var(--green)}
+    .det-chip{font-size:11px;font-weight:800;line-height:1.7;padding:3px 8px;border-radius:6px;flex:none}
+    /* Full-size view. Same overlay, more pixels — a 20% dent chip is unreadable
+       in a 2-up grid. */
+    .lightbox{position:fixed;inset:0;background:rgba(12,18,14,.86);display:none;align-items:center;justify-content:center;padding:32px;z-index:60}
+    .lightbox.open{display:flex}
+    .lightbox-inner{position:relative;max-width:min(900px,92vw);max-height:88vh;display:flex;flex-direction:column;gap:12px}
+    .lightbox-frame{position:relative;line-height:0;border-radius:12px;overflow:hidden;background:#000}
+    .lightbox-frame img{display:block;max-width:100%;max-height:76vh;width:auto;height:auto}
+    .lightbox-frame svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+    .lightbox-cap{color:#fff;font-size:13px;font-weight:600;display:flex;align-items:center;gap:12px}
+    .lightbox-close{margin-left:auto;background:rgba(255,255,255,.14);border:none;color:#fff;border-radius:8px;padding:7px 13px;font-size:12.5px;font-weight:700;cursor:pointer}
     .yes-no{display:inline-flex;align-items:center;gap:6px;font-weight:800}
     .yes-no.bad{color:var(--banned)}
     .yes-no.good{color:var(--green)}
+
+    .mid-row.lower{flex:none;min-height:0}
+    .legend-note{font-size:11.5px;color:var(--muted2);line-height:1.5}
+    .rate-list{display:flex;flex-direction:column;gap:16px;margin-top:20px}
+    .rate-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+    .rate-name{font-size:13.5px;font-weight:700;color:#414a43}
+    .rate-val{font-size:20px;font-weight:800;letter-spacing:-.02em}
+    .rate-bar{height:9px;border-radius:9px;background:#eef1ee;margin-top:7px;overflow:hidden}
+    .rate-fill{height:100%;width:0;border-radius:9px;transition:width .4s}
+    .rate-sub{font-size:11.5px;color:var(--muted);margin-top:5px}
+    .mini-table{width:100%;border-collapse:collapse;margin-top:18px;font-size:12.5px}
+    .mini-table th{text-align:right;font-size:10.5px;font-weight:700;color:#9ca3af;letter-spacing:.4px;text-transform:uppercase;padding:0 0 7px 8px;border-bottom:1px solid var(--border)}
+    .mini-table td{text-align:right;padding:8px 0 8px 8px;border-bottom:1px solid #eef1ee;color:#414a43;font-weight:600;font-variant-numeric:tabular-nums}
+    .mini-table th:first-child,.mini-table td:first-child{text-align:left;padding-left:0}
+    .mini-table tr:last-child td{border-bottom:none}
+    .mode-strip{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+    .mode-pill{font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:7px;border:1px solid}
+    .trigger-list{display:flex;flex-direction:column;gap:11px;margin-top:18px}
+    .trigger{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 12px;align-items:center}
+    .trigger-name{font-size:13px;font-weight:700;color:#414a43;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .trigger-kind{font-size:10px;font-weight:800;letter-spacing:.3px;margin-right:7px}
+    .trigger-count{font-size:13px;font-weight:800}
+    .trigger-bar{grid-column:1/-1;height:6px;border-radius:6px;background:#eef1ee;overflow:hidden}
+    .trigger-bar div{height:100%;border-radius:6px}
+    .trigger-empty{font-size:13px;color:var(--muted);padding:12px 0}
+    .rule-list{list-style:none;display:flex;flex-direction:column;gap:12px;margin-top:18px}
+    .rule-list li{display:flex;gap:12px;align-items:flex-start;font-size:13px;color:#414a43;line-height:1.55}
+    .rule-badge{flex:none;width:112px;text-align:center;color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.3px;padding:4px 0;border-radius:5px;margin-top:1px}
+    .rule-foot{margin-top:16px;font-size:12px;color:var(--muted2);line-height:1.55;background:#f5f6f5;border-radius:9px;padding:10px 13px}
+    .advisory-note{background:#fdeaea;border:1px solid #f6cccc;border-radius:10px;padding:12px 15px;font-size:12.5px;color:#a8322a;line-height:1.55}
+    .advisory-note strong{font-weight:800}
+    .threshold-note{background:#f5f6f5;border:1px solid var(--border);border-radius:10px;padding:11px 15px;font-size:12.5px;color:#414a43;line-height:1.55;margin-top:12px}
+
+    /* ══ NARROW SCREENS ══ */
+    @media (max-width:1100px){
+      .stat-row{grid-template-columns:repeat(2,1fr)}
+      .mid-row{grid-template-columns:minmax(0,1fr)}
+      .detail-grid{grid-template-columns:minmax(0,1fr)}
+      .detail-left{max-width:420px}
+    }
+    @media (max-width:640px){
+      .app{flex-direction:column-reverse}
+      .sidebar{width:100%;flex-direction:row;justify-content:center;padding:6px 0;gap:10px}
+      .sidebar-logo{display:none}
+      .topbar{padding:8px 16px;height:auto;min-height:60px;flex-wrap:wrap;gap:10px}
+      .live-badge{display:none}
+      #page-dashboard,#page-reports,#page-detail{padding:16px}
+      .stat-row{grid-template-columns:minmax(0,1fr)}
+      .donut-area{flex-direction:column;align-items:stretch}
+      .donut-wrap{align-self:center}
+      .detail-mini-grid{grid-template-columns:minmax(0,1fr)}
+      .photo-grid{grid-template-columns:minmax(0,1fr)}
+      .row{flex-wrap:wrap}
+      .rule-badge{width:104px;font-size:9.5px;white-space:nowrap}
+    }
 
     /* ══ AUTH ══ */
     /* The app stays hidden until /api/auth/me answers, so a signed-out
@@ -285,19 +347,19 @@
             <div><div class="stat-num" id="stat-nc">—</div><div class="stat-label">NON-COMPLIANT</div></div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon" style="background:#fdeaea"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="#e05050" stroke-width="1.9"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8" stroke-linecap="round"/></svg></div>
-            <div><div class="stat-num" id="stat-banned">—</div><div class="stat-label">BANNED</div></div>
+            <div class="stat-icon" style="background:#fdeaea"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="#e05050" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M12 8v4m0 4h.01"/></svg></div>
+            <div><div class="stat-num" id="stat-warning">—</div><div class="stat-label">WARNING · FDA ADVISORY</div></div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon" style="background:#e3f2fd"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="#1565c0" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15l-5-5L5 21"/><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/></svg></div>
-            <div><div class="stat-num" id="stat-damaged">—</div><div class="stat-label">DAMAGED PACKAGING</div></div>
+            <div class="stat-icon" style="background:#e3f2fd"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="#1565c0" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.3 7L12 12l8.7-5M12 22V12"/></svg></div>
+            <div><div class="stat-num" id="stat-damaged">—</div><div class="stat-label">FAILED ON PACKAGING DAMAGE</div></div>
           </div>
         </div>
 
         <div class="mid-row">
           <div class="card">
-            <div class="card-title">Flagged by outcome</div>
-            <div class="card-sub">All-time · label checks and damage checks</div>
+            <div class="card-title">Verdicts</div>
+            <div class="card-sub">All-time · every saved scan, as the app decided it</div>
             <div class="donut-area">
               <div class="donut-wrap">
                 <svg viewBox="0 0 120 120" id="donut-svg">
@@ -311,45 +373,64 @@
               <div class="legend-list">
                 <div class="legend-row"><div class="legend-dot" style="background:#1a7a3c"></div><span class="legend-name">Compliant</span><span class="legend-val" id="leg-ok">—</span></div>
                 <div class="legend-div"></div>
-                <div class="legend-row"><div class="legend-dot" style="background:#e0930a"></div><span class="legend-name">Non-compliant</span><span class="legend-val" id="leg-nc">—</span></div>
+                <div class="legend-row"><div class="legend-dot" style="background:#e0930a"></div><span class="legend-name">Non-Compliant</span><span class="legend-val" id="leg-nc">—</span></div>
                 <div class="legend-div"></div>
-                <div class="legend-row"><div class="legend-dot" style="background:#e05050"></div><span class="legend-name">Banned</span><span class="legend-val" id="leg-bn">—</span></div>
+                <div class="legend-row"><div class="legend-dot" style="background:#e05050"></div><span class="legend-name">Warning</span><span class="legend-val" id="leg-warn">—</span></div>
                 <div class="legend-div"></div>
-                <div class="legend-row"><div class="legend-dot" style="background:#1565c0"></div><span class="legend-name">Damaged packaging</span><span class="legend-val" id="leg-dmg">—</span></div>
+                <div class="legend-note">Warning flags a product for manual verification: its name matched an FDA Philippines advisory.</div>
               </div>
             </div>
           </div>
 
           <div class="card">
-            <div class="announce-header">
-              <div class="announce-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#1a7a3c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5.9V19.2a1.76 1.76 0 01-3.4.6l-2.15-6.15M18 13a3 3 0 100-6M5.4 13.7A4 4 0 017 6h1.8c4.1 0 7.6-1.2 9.2-3v14c-1.6-1.8-5.1-3-9.2-3H7a4 4 0 01-1.6-.3z"/></svg></div>
-              <span class="announce-title">Announcements</span>
-            </div>
-            <div class="announce-item">
-              <div class="announce-tag-row">
-                <span class="announce-tag">Update #82-FD</span>
-                <span class="announce-date">April 10, 2026</span>
+            <div class="card-title">Check results</div>
+            <div class="card-sub">Each check judged on its own · an inspection counts toward both</div>
+            <div class="rate-list">
+              <div class="rate">
+                <div class="rate-head"><span class="rate-name">Labels passed</span><span class="rate-val" id="rate-label-val">—</span></div>
+                <div class="rate-bar"><div class="rate-fill" id="rate-label-fill" style="background:#1a7a3c"></div></div>
+                <div class="rate-sub" id="rate-label-sub"></div>
               </div>
-              <div class="announce-item-title">FDA Export Registration Compliance Update</div>
-              <div class="announce-body">All manufacturers must finalize their 2026 Export Registration. Failure to update the Compliance Registry Number by May 1st will auto-flag all associated labels. Access the <a href="#">Partner Portal</a> to submit documentation.</div>
-              <div class="announce-actions">
-                <button class="btn-primary">Read directive ↗</button>
-                <button class="btn-outline">Acknowledge</button>
+              <div class="rate">
+                <div class="rate-head"><span class="rate-name">Packaging undamaged</span><span class="rate-val" id="rate-pack-val">—</span></div>
+                <div class="rate-bar"><div class="rate-fill" id="rate-pack-fill" style="background:#1565c0"></div></div>
+                <div class="rate-sub" id="rate-pack-sub"></div>
               </div>
             </div>
-            <div class="alert-bar">
-              <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-              System maintenance: analytics engine offline tonight 2:00–4:00 AM EST.
-            </div>
+            <table class="mini-table" aria-label="Damage checks by packaging type">
+              <thead><tr><th>Packaging</th><th>Checks</th><th>Failed</th><th>Below 70%</th><th>Unavailable</th></tr></thead>
+              <tbody id="pack-table"></tbody>
+            </table>
+            <div class="mode-strip" id="mode-strip"></div>
+          </div>
+        </div>
+
+        <div class="mid-row lower">
+          <div class="card">
+            <div class="card-title">Common flag triggers</div>
+            <div class="card-sub">What sent scans to Non-Compliant or Warning</div>
+            <div class="trigger-list" id="trigger-list"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">How a verdict is decided</div>
+            <div class="card-sub">The app's rules, applied in order · the first that fires decides</div>
+            <ol class="rule-list">
+              <li><span class="rule-badge" style="background:#e05050">WARNING</span><span>The label text matched an entry on the FDA Philippines advisory list (about 20,800 unregistered health products).</span></li>
+              <li><span class="rule-badge" style="background:#e0930a">NON-COMPLIANT</span><span>Expired, no expiry printed, expiry photographed but unreadable, or no ingredient list. Also packaging damage with top confidence of 70% or more.</span></li>
+              <li><span class="rule-badge" style="background:#1a7a3c">COMPLIANT</span><span>None of the above. Detections below 70% are still drawn on the photos for review.</span></li>
+            </ol>
+            <div class="rule-foot">An unreadable value is never a pass. A damage check that could not run is reported as <em>unavailable</em>, which is neither damaged nor clean.</div>
           </div>
         </div>
 
         <div class="footer-strip">
-          <div class="footer-item"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#1a7a3c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.95.68l1.5 4.5a1 1 0 01-.5 1.2l-2.26 1.13a11 11 0 005.5 5.5l1.13-2.26a1 1 0 011.2-.5l4.5 1.5a1 1 0 01.68.95V19a2 2 0 01-2 2h-1C9.7 21 3 14.3 3 6V5z"/></svg>Hotline <strong>1-800-FDA-1088</strong></div>
-          <div class="footer-item"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#1a7a3c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 014 9 15 15 0 01-4 9 15 15 0 01-4-9 15 15 0 014-9z"/></svg><a href="#">www.fda.gov</a></div>
-          <div class="footer-item"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#1a7a3c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l7.9 5.26a2 2 0 002.2 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>reporting@fda.gov</div>
+          <strong class="footer-item" style="font-weight:800">FDA Philippines</strong>
+          <div class="footer-item"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#1a7a3c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.95.68l1.5 4.5a1 1 0 01-.5 1.2l-2.26 1.13a11 11 0 005.5 5.5l1.13-2.26a1 1 0 011.2-.5l4.5 1.5a1 1 0 01.68.95V19a2 2 0 01-2 2h-1C9.7 21 3 14.3 3 6V5z"/></svg>Hotline <strong>(02) 8807-0751</strong></div>
+          <div class="footer-item"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#1a7a3c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 014 9 15 15 0 01-4 9 15 15 0 01-4-9 15 15 0 014-9z"/></svg><a href="https://www.fda.gov.ph" target="_blank" rel="noopener">www.fda.gov.ph</a></div>
+          <div class="footer-item"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#1a7a3c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l7.9 5.26a2 2 0 002.2 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg><a href="mailto:fdaphils@fda.gov.ph">fdaphils@fda.gov.ph</a></div>
           <div style="flex:1"></div>
-          <span class="footer-copy">© 2026 U.S. Food &amp; Drug Administration</span>
+          <span class="footer-copy">CheckMuna monitoring dashboard · not an official FDA service</span>
         </div>
       </div>
 
@@ -392,8 +473,8 @@
             <button class="chip active" id="chip-all" onclick="setFilter('all')">All</button>
             <button class="chip" id="chip-ok" onclick="setFilter('ok')">Compliant</button>
             <button class="chip" id="chip-nc" onclick="setFilter('nc')">Non-compliant</button>
-            <button class="chip" id="chip-banned" onclick="setFilter('banned')">Banned</button>
-            <button class="chip" id="chip-damaged" onclick="setFilter('damaged')">Damaged</button>
+            <button class="chip" id="chip-warning" onclick="setFilter('warning')">Warning</button>
+            <button class="chip" id="chip-damaged" onclick="setFilter('damaged')" title="Any packaging detection, including ones below the 70% fail threshold">Damage found</button>
           </div>
           <div class="tb-search">
             <svg viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
@@ -401,7 +482,11 @@
           </div>
           <button class="tb-btn export-btn" onclick="exportCSV()">
             <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-            Export
+            Export CSV
+          </button>
+          <button class="tb-btn select-btn" onclick="openSummaryReport()" title="Printable summary of the reports shown">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/></svg>
+            Summary report
           </button>
         </div>
 
@@ -432,6 +517,14 @@
           <div class="detail-left">
             <div class="detail-img" id="detail-img"></div>
             <div class="detail-badge" id="detail-badge"></div>
+            <!-- Warning is a prompt to verify, not a finding — say so, and
+                 give the number to call. -->
+            <div class="advisory-note" id="detail-advisory" style="display:none">
+              <strong>Manual verification needed.</strong> The product name matched an entry on the
+              FDA Philippines advisory list of unregistered health products. OCR matching favours
+              recall, so confirm the product before acting. To report it, call the FDA hotline
+              <strong>(02) 8807-0751</strong> or email <a href="mailto:fdaphils@fda.gov.ph">fdaphils@fda.gov.ph</a>.
+            </div>
             <div class="detail-keyword-card">
               <div class="detail-label" id="detail-keyword-label">Matched keyword</div>
               <div class="detail-keyword-val" id="detail-keyword"></div>
@@ -464,6 +557,15 @@
               <div class="model-note" id="detail-model-note" style="margin-top:14px"></div>
             </div>
 
+            <!-- The shots the detector actually ran on, with its boxes drawn
+                 back on. Hidden for records saved before the app uploaded
+                 them — see renderPhotos(). -->
+            <div class="detail-box" id="detail-photos-box">
+              <div class="detail-label" style="margin-bottom:11px">Packaging photos</div>
+              <div class="photo-grid" id="detail-photos"></div>
+              <div class="model-note" id="detail-photos-note" style="margin-top:14px;display:none"></div>
+            </div>
+
             <!-- ── Label half. Shown for kind 'label' and 'both'. ── -->
             <div class="detail-box" id="detail-ingredients-box">
               <div class="detail-label" style="margin-bottom:9px">Ingredients</div>
@@ -481,6 +583,16 @@
   </div>
 </div>
 
+<div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+  <div class="lightbox-inner" onclick="event.stopPropagation()">
+    <div class="lightbox-frame" id="lightbox-frame"></div>
+    <div class="lightbox-cap">
+      <span id="lightbox-cap"></span>
+      <button class="lightbox-close" onclick="closeLightbox()">Close</button>
+    </div>
+  </div>
+</div>
+
 <script>
   // Same-origin API served by /api/reports (backed by Supabase server-side —
   // no keys are ever exposed to the browser).
@@ -488,7 +600,7 @@
 
   let allReports   = [];
   let visibleCount = 10;
-  let currentFilter    = 'all'; // outcome:   all | ok | nc | banned | damaged
+  let currentFilter    = 'all'; // outcome:   all | ok | nc | warning | damaged
   let currentKind      = 'all'; // flow:      all | label | damage | both
   let currentPackaging = 'all'; // packaging: all | box | foil | bottle
   let currentReportId  = null;
@@ -507,14 +619,45 @@
   function hasLabel(r){  return kindOf(r) !== 'damage' && !!r.label; }
   function hasDamage(r){ return kindOf(r) !== 'label'  && !!r.damage; }
 
-  function isBanned(r){ return r.status === 'WARNING / BANNED'; }
+  // The app renamed Banned → Warning. Records saved before that still carry
+  // the old spellings, and they are the same verdict.
+  const WARNING_STATUSES = ['WARNING', 'WARNING / BANNED', 'BANNED'];
+  function isWarning(r){ return WARNING_STATUSES.includes(r.status); }
   function isCompliant(r){ return r.status === 'COMPLIANT'; }
-  // Only true for a check that actually ran and found something. A foil or
-  // bottle scan reports available:false, which is not "clean".
+  function isNonCompliant(r){ return !isCompliant(r) && !isWarning(r); }
+
+  // The app filters damage twice: each detector keeps boxes at 0.25–0.35 and
+  // draws them, but the engine only fails the scan at 0.70. So "the detector
+  // found something" and "damage failed the scan" are different questions —
+  // a Compliant scan can carry a low-confidence box.
+  const DAMAGE_FAIL_THRESHOLD = 0.70;
+  // Only true for a check that actually ran and found something. An
+  // unavailable check (model missing or failed) is not "clean".
   function isDamaged(r){ return !!(r.damage && r.damage.available && r.damage.isDamaged); }
+  function damageFailed(r){ return isDamaged(r) && (r.damage.maxConfidence || 0) >= DAMAGE_FAIL_THRESHOLD; }
+  function damageUnavailable(r){ return !!(r.damage && !r.damage.available); }
+
+  // Flag tags the engine writes into matchedKeyword for a non-advisory
+  // failure. An inspection joins several with ", ".
+  function flagTags(r){
+    const kw = (r.matchedKeyword || '').trim();
+    if(!kw || kw === '—') return [];
+    if(isWarning(r)) return [kw];
+    return kw.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  /** Did the label half pass, independent of any damage finding? */
+  function labelPassed(r){
+    if(!hasLabel(r) || isWarning(r)) return false;
+    if(isCompliant(r)) return true;
+    // A Non-Compliant inspection whose only trigger is packaging damage
+    // still passed its label.
+    const tags = flagTags(r);
+    return tags.length > 0 && tags.every(t => t === 'packaging damage');
+  }
 
   const KIND_LABELS = { label:'LABEL', damage:'DAMAGE', both:'INSPECTION' };
   const KIND_COLORS = { label:'#1a7a3c', damage:'#1565c0', both:'#8E24AA' };
+  const MODE_NAMES  = { label:'Check Labels', damage:'Damage Detection', both:'Inspection Mode' };
   const PACK_LABELS = { box:'Box', foil:'Foil', bottle:'Bottle' };
 
   function packagingOf(r){
@@ -525,26 +668,26 @@
     return p ? (PACK_LABELS[p] || p) : '—';
   }
 
-  // Worst-first ordering for the severity sort and the headline badge.
-  // Damage outranks a merely non-compliant label because a damaged pack is a
-  // physical defect, but a banned product still outranks everything.
+  // Worst-first ordering for the severity sort. The badge is the app's own
+  // verdict — the dashboard never re-decides it — and a scan whose detector
+  // found something below the fail threshold sorts just above clean ones.
   function severityOf(r){
-    if(isBanned(r))    return 4;
-    if(isDamaged(r))   return 3;
-    if(!isCompliant(r))return 2;
+    if(isWarning(r))  return 4;
+    if(!isCompliant(r)) return 3;
+    if(isDamaged(r))  return 2;
     return 1;
   }
 
+  const VERDICT_COLORS = { ok:'#1a7a3c', nc:'#e0930a', warn:'#e05050' };
   function badgeFor(r){
-    if(isBanned(r))  return { bg:'#e05050', label:'BANNED' };
-    if(isDamaged(r)) return { bg:'#1565c0', label:'DAMAGED' };
-    if(!isCompliant(r)) return { bg:'#e0930a', label:'NON-COMPLIANT' };
-    return { bg:'#1a7a3c', label:'COMPLIANT' };
+    if(isWarning(r))    return { bg:VERDICT_COLORS.warn, label:'WARNING' };
+    if(!isCompliant(r)) return { bg:VERDICT_COLORS.nc,   label:'NON-COMPLIANT' };
+    return { bg:VERDICT_COLORS.ok, label:'COMPLIANT' };
   }
 
   function pct(v){ return (v==null || isNaN(v)) ? '—' : Math.round(v*100)+'%'; }
 
-  /** "2 Dents, 1 Scratches" from the per-class counts the API returns. */
+  /** "2 Structural deformation, 1 Label aberration" from the per-class counts. */
   function detectionSummary(r){
     const counts = (r.damage && r.damage.detectionCounts) || {};
     const parts = Object.keys(counts).map(k => counts[k] + ' ' + k);
@@ -560,6 +703,184 @@
   }
 
   function placeholderIcon(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>'; }
+
+  // ── PACKAGING PHOTOS ──
+  // The capture slots, and the colours the overlay draws each detector class
+  // in. An unknown class still gets a box — in the damage blue — rather than
+  // being dropped, so a future detector class is visible before this list
+  // knows about it.
+  const SLOT_LABELS = { front:'Front', side1:'Side 1', side2:'Side 2', back:'Back' };
+  // Classes the three shipped detectors report (box: both; bottle: label
+  // aberration; foil: structural deformation), plus the old box classes so
+  // early records still colour the same.
+  const DETECTION_COLORS = {
+    'Structural deformation':'#e05050', 'Label aberration':'#8E24AA',
+    Dent:'#e05050', Scratches:'#e0930a',
+  };
+  function detectionColor(c){ return DETECTION_COLORS[c] || '#1565c0'; }
+
+  // A photo may have no slot name (a detector fed a plain list of images), and
+  // ordinals stay consecutive even when a slot was skipped — so position is
+  // the fallback caption, never a stand-in for the slot.
+  function photoCaption(img, i){
+    return SLOT_LABELS[img && img.slot] || ('Photo ' + (i + 1));
+  }
+
+  // Photos are fetched per report and kept: a saved record never changes, so
+  // reopening one shouldn't re-download four images. Cleared on delete so the
+  // cache can't outlive the report it belongs to.
+  const photoCache = new Map();
+
+  async function loadPhotos(id){
+    if(photoCache.has(id)) return photoCache.get(id);
+    const res = await fetch(SERVER + '/api/reports/images?id=' + encodeURIComponent(id));
+    if(res.status === 401){ toLogin(); return null; }
+    if(!res.ok) throw new Error('failed to load photos');
+    const data = await res.json();
+    const images = (data && data.ok && Array.isArray(data.images)) ? data.images : [];
+    photoCache.set(id, images);
+    return images;
+  }
+
+  /** The boxes belonging to one photo, by the ordinal its sourceIndex names. */
+  function boxesForPhoto(r, ordinal){
+    const boxes = (r.damage && r.damage.boxes) || [];
+    return boxes.filter(b => b.sourceIndex === ordinal);
+  }
+
+  /**
+   * The detection rectangles as an SVG layered over the photo.
+   *
+   * Coordinates are fractions of the photo with EXIF orientation already
+   * applied, so a 0..100 viewBox with preserveAspectRatio="none" maps them
+   * straight onto the rendered image at whatever size it happens to be —
+   * which is why the frame lets the image set its own dimensions.
+   *
+   * The label chip is drawn in a second, unscaled overlay: stretching one
+   * viewBox to a non-square photo would stretch the text with it.
+   */
+  function overlaySvg(boxes, withLabels){
+    if(!boxes.length) return '';
+    const rects = boxes.map(b => {
+      const c = detectionColor(b.label);
+      return '<rect x="'+(b.left*100)+'" y="'+(b.top*100)+'" width="'+(b.width*100)+
+        '" height="'+(b.height*100)+'" fill="'+c+'22" stroke="'+c+
+        '" stroke-width="0.6" vector-effect="non-scaling-stroke" rx="0.6"/>';
+    }).join('');
+    const svg = '<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">'+rects+'</svg>';
+    if(!withLabels) return svg;
+
+    const tags = boxes.map(b => {
+      const c = detectionColor(b.label);
+      const conf = (b.confidence == null) ? '' : ' ' + pct(b.confidence);
+      // Sits just above the box, or just inside it when the box starts at the
+      // very top of the photo and there is no room above.
+      const top = b.top < 0.06 ? (b.top*100)+'%' : 'calc('+(b.top*100)+'% - 20px)';
+      return '<span class="det-chip" style="position:absolute;left:'+(b.left*100)+'%;top:'+top+
+        ';background:'+c+';color:#fff;white-space:nowrap">'+esc(b.label)+esc(conf)+'</span>';
+    }).join('');
+    return svg + tags;
+  }
+
+  /**
+   * The packaging photos for the open report.
+   *
+   * Hidden outright when the record has none — every damage scan saved before
+   * the app started uploading them. That is a missing preview, not a missing
+   * check: the damage section above still reports what the detector found.
+   */
+  async function renderPhotos(r){
+    const box  = document.getElementById('detail-photos-box');
+    const grid = document.getElementById('detail-photos');
+    const note = document.getElementById('detail-photos-note');
+    const stored = (r.damage && r.damage.photos) || [];
+
+    if(!hasDamage(r) || stored.length === 0){
+      box.style.display = 'none';
+      grid.innerHTML = '';
+      return;
+    }
+
+    box.style.display = '';
+    note.style.display = 'none';
+    grid.innerHTML = '<div class="ingredients-text">Loading photos…</div>';
+
+    let images;
+    try { images = await loadPhotos(r.id); }
+    catch(e){ images = null; }
+
+    // The reader may have gone back to the list, or opened another report,
+    // while four images were in flight.
+    if(currentReportId !== r.id) return;
+
+    if(!images){
+      grid.innerHTML = '<div class="ingredients-text">Could not load the packaging photos.</div>';
+      return;
+    }
+
+    // Per-photo counts are only truthful when the geometry is there to count.
+    // A damaged record whose detector reported no boxes knows something was
+    // found but not on which photo — captioning all four "Clean" would state
+    // the opposite of the verdict directly above.
+    const perPhoto = !isDamaged(r) || (r.damage.boxes || []).length > 0;
+
+    grid.innerHTML = images.map((img, i) => {
+      const boxes = boxesForPhoto(r, img.ordinal);
+      const cap = photoCaption(img, i);
+      const hits = !perPhoto ? ''
+        : boxes.length
+        ? '<span class="photo-hits">'+boxes.length+(boxes.length===1?' finding':' findings')+'</span>'
+        : '<span class="photo-hits clean">Clean</span>';
+      return '<div class="photo-card">'+
+        '<button class="photo-frame" onclick="openLightbox(\''+esc(r.id)+'\','+i+')" '+
+          'aria-label="Enlarge '+esc(cap)+' photo">'+
+          '<img src="'+esc(img.imageBase64)+'" alt="'+esc(cap)+' packaging photo"/>'+
+          overlaySvg(boxes, false)+
+        '</button>'+
+        '<div class="photo-cap"><span class="photo-slot">'+esc(cap)+'</span>'+hits+'</div>'+
+      '</div>';
+    }).join('');
+
+    // A damaged record whose detector reported classes without geometry: the
+    // photos are real, the absence of boxes on them is not a verdict.
+    if(isDamaged(r) && !((r.damage.boxes || []).length)){
+      note.style.display = '';
+      note.textContent = 'This scan recorded which damage classes were found '+
+        'but not where on the photo, so no outline is drawn. Newer scans '+
+        'store the detector\'s boxes.';
+    }
+  }
+
+  // ── LIGHTBOX ──
+  function openLightbox(reportId, index){
+    const r = allReports.find(x => x.id === reportId);
+    const images = photoCache.get(reportId);
+    if(!r || !images || !images[index]) return;
+
+    const img = images[index];
+    const cap = photoCaption(img, index);
+    const boxes = boxesForPhoto(r, img.ordinal);
+
+    document.getElementById('lightbox-frame').innerHTML =
+      '<img src="'+esc(img.imageBase64)+'" alt="'+esc(cap)+' packaging photo"/>'+
+      overlaySvg(boxes, true);
+    document.getElementById('lightbox-cap').textContent =
+      (r.productName || 'Unnamed Record') + ' · ' + cap +
+      (boxes.length ? ' · '+boxes.length+(boxes.length===1?' finding':' findings') : '');
+    document.getElementById('lightbox').classList.add('open');
+  }
+
+  function closeLightbox(e){
+    // The backdrop and the Close button close it; a click on the picture
+    // itself does not (.lightbox-inner stops that click getting here).
+    if(e && e.type === 'click' && e.target !== e.currentTarget) return;
+    document.getElementById('lightbox').classList.remove('open');
+    document.getElementById('lightbox-frame').innerHTML = '';
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape') closeLightbox();
+  });
 
   // ── LOAD FROM /api/reports ──
   async function loadReports(){
@@ -600,9 +921,12 @@
       list = list.filter(r => packagingOf(r) === currentPackaging);
     }
 
-    if(currentFilter === 'ok')      list = list.filter(r => isCompliant(r) && !isDamaged(r));
-    if(currentFilter === 'nc')      list = list.filter(r => !isCompliant(r) && !isBanned(r));
-    if(currentFilter === 'banned')  list = list.filter(isBanned);
+    // Outcome filters follow the app's three verdicts. "Damage found" is an
+    // extra lens: any detection kept by the detector, whether or not it was
+    // confident enough to fail the scan.
+    if(currentFilter === 'ok')      list = list.filter(isCompliant);
+    if(currentFilter === 'nc')      list = list.filter(isNonCompliant);
+    if(currentFilter === 'warning') list = list.filter(isWarning);
     if(currentFilter === 'damaged') list = list.filter(isDamaged);
 
     if(q) list = list.filter(r =>
@@ -647,7 +971,7 @@
 
   function setFilter(f){
     currentFilter = f;
-    ['all','ok','nc','banned','damaged'].forEach(k=>
+    ['all','ok','nc','warning','damaged'].forEach(k=>
       document.getElementById('chip-'+k).classList.toggle('active', k===f));
     renderReports();
   }
@@ -723,6 +1047,9 @@
       // Each half contributes its own fields, so an inspection row shows
       // both the label reading and the damage outcome.
       const bits = [];
+      if(isWarning(r) && r.matchedKeyword){
+        bits.push('<span class="row-matched">Advisory: <strong>'+esc(r.matchedKeyword)+'</strong></span>');
+      }
       if(hasLabel(r)){
         bits.push('<span class="row-matched">'+
           esc(r.label.detectedProductName || '—')+'</span>');
@@ -731,7 +1058,8 @@
       }
       if(hasDamage(r)){
         bits.push('<span class="row-matched">'+esc(damageStatusText(r))+
-          (isDamaged(r) ? ' · '+pct(r.damage.maxConfidence) : '')+'</span>');
+          (isDamaged(r) ? ' · '+pct(r.damage.maxConfidence)+
+            (damageFailed(r) ? '' : ' (below fail threshold)') : '')+'</span>');
       }
       const detail = bits.join('<span class="row-dot">•</span>');
 
@@ -761,37 +1089,40 @@
   }
 
   // ── DASHBOARD STATS ──
+  function setText(id, v){ document.getElementById(id).textContent = v; }
+  function share(n, d){ return d ? Math.round(n / d * 100) + '%' : '—'; }
+
   function updateDashboard(){
     const total = allReports.length;
-    // Each scan counts once, in its worst category, so the arcs sum to the
-    // total instead of double-counting an inspection that is both banned
-    // and damaged.
-    const bn  = allReports.filter(r => severityOf(r) === 4).length;
-    const dmg = allReports.filter(r => severityOf(r) === 3).length;
-    const nc  = allReports.filter(r => severityOf(r) === 2).length;
-    const ok  = allReports.filter(r => severityOf(r) === 1).length;
+    // The app's verdicts are mutually exclusive, so the arcs sum to the total.
+    const warn = allReports.filter(isWarning).length;
+    const nc   = allReports.filter(isNonCompliant).length;
+    const ok   = allReports.filter(isCompliant).length;
+    const dmgFailed = allReports.filter(damageFailed).length;
 
-    document.getElementById('stat-total').textContent   = total.toLocaleString();
-    document.getElementById('stat-nc').textContent      = nc.toLocaleString();
-    document.getElementById('stat-banned').textContent  = bn.toLocaleString();
-    document.getElementById('stat-damaged').textContent = dmg.toLocaleString();
-    document.getElementById('leg-nc').textContent       = nc.toLocaleString();
-    document.getElementById('leg-bn').textContent       = bn.toLocaleString();
-    document.getElementById('leg-dmg').textContent      = dmg.toLocaleString();
-    document.getElementById('leg-ok').textContent       = ok.toLocaleString();
-    document.getElementById('donut-num').textContent    = total>=1000?(total/1000).toFixed(1)+'K':total||'—';
+    setText('stat-total',   total.toLocaleString());
+    setText('stat-nc',      nc.toLocaleString());
+    setText('stat-warning', warn.toLocaleString());
+    setText('stat-damaged', dmgFailed.toLocaleString());
+    setText('leg-ok',   ok.toLocaleString());
+    setText('leg-nc',   nc.toLocaleString());
+    setText('leg-warn', warn.toLocaleString());
+    const flagged = nc + warn;
+    setText('donut-num', total ? (flagged >= 1000 ? (flagged/1000).toFixed(1)+'K' : flagged) : '—');
 
-    // Donut: one arc per outcome, laid end to end around the ring.
+    updateCheckResults();
+    updateTriggers();
+
+    // Donut: one arc per verdict, laid end to end around the ring.
     const circ = 2*Math.PI*46;
     const svg  = document.getElementById('donut-svg');
     if(total===0){ svg.innerHTML='<circle cx="60" cy="60" r="46" fill="none" stroke="#eef1ee" stroke-width="17"/>'; return; }
 
     const gap = 2;
     const segments = [
-      { value: ok,  color: '#1a7a3c' },
-      { value: nc,  color: '#e0930a' },
-      { value: bn,  color: '#e05050' },
-      { value: dmg, color: '#1565c0' },
+      { value: ok,   color: VERDICT_COLORS.ok },
+      { value: nc,   color: VERDICT_COLORS.nc },
+      { value: warn, color: VERDICT_COLORS.warn },
     ];
 
     let offset = 0;
@@ -806,6 +1137,91 @@
       offset += frac*circ;
     });
     svg.innerHTML = arcs;
+  }
+
+  /**
+   * Pass rates per check. The app uploads compliant scans too precisely so
+   * these ratios exist. An inspection contributes to both halves, and each
+   * half is judged on its own: a label that passed on a scan that failed on
+   * damage is still a passing label.
+   *
+   * Unavailable damage checks are left out of the packaging rate — a check
+   * that never ran is not an undamaged pack.
+   */
+  function updateCheckResults(){
+    const labels = allReports.filter(hasLabel);
+    const labelOk = labels.filter(labelPassed).length;
+    const labelWarn = labels.filter(isWarning).length;
+    setText('rate-label-val', share(labelOk, labels.length));
+    document.getElementById('rate-label-fill').style.width =
+      labels.length ? (labelOk / labels.length * 100) + '%' : '0';
+    setText('rate-label-sub', labels.length
+      ? labelOk + ' of ' + labels.length + ' label checks · ' + labelWarn + ' advisory match' + (labelWarn === 1 ? '' : 'es')
+      : 'No label checks yet');
+
+    const damage = allReports.filter(hasDamage);
+    const ran = damage.filter(r => !damageUnavailable(r));
+    const packOk = ran.filter(r => !damageFailed(r)).length;
+    const unavailable = damage.length - ran.length;
+    setText('rate-pack-val', share(packOk, ran.length));
+    document.getElementById('rate-pack-fill').style.width =
+      ran.length ? (packOk / ran.length * 100) + '%' : '0';
+    setText('rate-pack-sub', damage.length
+      ? packOk + ' of ' + ran.length + ' damage checks that ran' +
+        (unavailable ? ' · ' + unavailable + ' unavailable' : '')
+      : 'No damage checks yet');
+
+    document.getElementById('pack-table').innerHTML = ['box','foil','bottle'].map(p => {
+      const rows = damage.filter(r => packagingOf(r) === p);
+      const failed = rows.filter(damageFailed).length;
+      const below  = rows.filter(r => isDamaged(r) && !damageFailed(r)).length;
+      const unav   = rows.filter(damageUnavailable).length;
+      return '<tr><td>'+PACK_LABELS[p]+'</td><td>'+rows.length+'</td>'+
+        '<td style="color:'+(failed ? VERDICT_COLORS.nc : 'inherit')+'">'+failed+'</td>'+
+        '<td>'+below+'</td><td>'+unav+'</td></tr>';
+    }).join('');
+
+    document.getElementById('mode-strip').innerHTML = ['label','damage','both'].map(k => {
+      const n = allReports.filter(r => kindOf(r) === k).length;
+      const c = KIND_COLORS[k];
+      return '<span class="mode-pill" style="color:'+c+';background:'+c+'14;border-color:'+c+'40">'+
+        MODE_NAMES[k]+' · '+n+'</span>';
+    }).join('');
+  }
+
+  /**
+   * How often each trigger appears across flagged records — the dashboard
+   * version of the PDF report's "Common Flag Triggers". An advisory hit is
+   * keyed by the matched advisory product name; every other failure by the
+   * engine's own tag ("expired", "packaging damage", …).
+   */
+  function updateTriggers(){
+    const counts = new Map();
+    allReports.filter(r => !isCompliant(r)).forEach(r => {
+      flagTags(r).forEach(t => {
+        const key = (isWarning(r) ? 'a:' : 't:') + t.toLowerCase();
+        const cur = counts.get(key) || { name: t, advisory: isWarning(r), n: 0 };
+        cur.n++;
+        counts.set(key, cur);
+      });
+    });
+    const list = [...counts.values()].sort((a,b) => b.n - a.n || a.name.localeCompare(b.name)).slice(0, 8);
+    const el = document.getElementById('trigger-list');
+    if(!list.length){
+      el.innerHTML = '<div class="trigger-empty">No flagged scans yet.</div>';
+      return;
+    }
+    const max = list[0].n;
+    el.innerHTML = list.map(t => {
+      const c = t.advisory ? VERDICT_COLORS.warn
+        : t.name === 'packaging damage' ? '#1565c0' : VERDICT_COLORS.nc;
+      const kindLabel = t.advisory ? 'ADVISORY' : t.name === 'packaging damage' ? 'PACKAGING' : 'LABEL';
+      return '<div class="trigger">'+
+        '<span class="trigger-name" title="'+esc(t.name)+'"><span class="trigger-kind" style="color:'+c+'">'+kindLabel+'</span>'+esc(t.name)+'</span>'+
+        '<span class="trigger-count">'+t.n+'</span>'+
+        '<div class="trigger-bar"><div style="width:'+(t.n/max*100)+'%;background:'+c+'"></div></div>'+
+      '</div>';
+    }).join('');
   }
 
   // ── ACTIONS ──
@@ -858,7 +1274,7 @@
       const json = await res.json();
       if(!json.ok) throw new Error(json.reason || 'delete failed');
 
-      ids.forEach(id=>selectedIds.delete(id));
+      ids.forEach(id=>{ selectedIds.delete(id); photoCache.delete(id); });
       allReports = allReports.filter(r=>!ids.includes(r.id));
       if(currentReportId && ids.includes(currentReportId)) showPage('reports');
       renderReports();
@@ -879,9 +1295,9 @@
   // half's own, blank where that half wasn't run. An inspection row fills
   // both halves. Exports whatever the current filters and sort produced.
   function exportCSV(){
-    const header = ['ID','Kind','Record Name','Packaging','Status','Scanned',
+    const header = ['ID','Mode','Record Name','Packaging','Status','Scanned',
                     'Detected Product','Expiration','Ingredients',
-                    'Damage Checked','Damage Found','Detections','Max Confidence',
+                    'Damage Checked','Damage Found','Failed On Damage','Detections','Max Confidence',
                     'Matched Keyword','Reasons'];
 
     const rows = [header, ...getFiltered().map(r=>{
@@ -889,16 +1305,17 @@
       const D = hasDamage(r) ? r.damage : null;
       return [
         r.id,
-        KIND_LABELS[kindOf(r)],
+        MODE_NAMES[kindOf(r)],
         r.productName,
         packagingOf(r) ? packagingLabel(r) : '',
-        r.status,
+        badgeFor(r).label,
         r.scannedAt,
         L ? (L.detectedProductName || '') : '',
         L ? (L.expiration || '') : '',
         L ? (L.ingredients || '') : '',
-        D ? (D.available ? 'Yes' : 'No model') : '',
+        D ? (D.available ? 'Yes' : 'Unavailable') : '',
         D ? (D.available ? (D.isDamaged ? 'Yes' : 'No') : '') : '',
+        D && D.available ? (damageFailed(r) ? 'Yes' : 'No') : '',
         D && D.isDamaged ? detectionSummary(r) : '',
         D && D.available && D.isDamaged ? pct(D.maxConfidence) : '',
         r.matchedKeyword || '',
@@ -911,6 +1328,70 @@
     a.href    = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
     a.download= 'checkmuna-reports.csv';
     a.click();
+  }
+
+  /**
+   * Product Compliance Summary Report — the dashboard's counterpart of the
+   * PDF the app builds from its own records, over whatever the current
+   * filters show. Opened as a plain page in a new tab and handed to the
+   * browser's print dialog, so "Save as PDF" gives a file to pass around.
+   */
+  function openSummaryReport(){
+    const list = getFiltered();
+    const filtered = list.length !== allReports.length;
+    const ok = list.filter(isCompliant), nc = list.filter(isNonCompliant), warn = list.filter(isWarning);
+    const flagged = list.filter(r => !isCompliant(r));
+
+    const counts = new Map();
+    flagged.forEach(r => flagTags(r).forEach(t => {
+      const k = t.toLowerCase();
+      const cur = counts.get(k) || { name: t, n: 0 };
+      cur.n++; counts.set(k, cur);
+    }));
+    const triggers = [...counts.values()].sort((a,b) => b.n - a.n);
+
+    const row = r => '<tr><td>'+esc(r.productName || 'Unnamed Record')+'</td><td>'+
+      MODE_NAMES[kindOf(r)]+(packagingOf(r) ? ' · '+esc(packagingLabel(r)) : '')+'</td><td>'+
+      fmtShort(r.scannedAt)+'</td><td><b style="color:'+badgeFor(r).bg+'">'+badgeFor(r).label+'</b></td><td>'+
+      esc((r.reasons || []).join(' ') || '—')+'</td></tr>';
+    const table = (rows, empty) => rows.length
+      ? '<table><thead><tr><th>Record</th><th>Mode</th><th>Scanned</th><th>Status</th><th>Reasons</th></tr></thead><tbody>'+
+        rows.map(row).join('')+'</tbody></table>'
+      : '<p class="empty">'+empty+'</p>';
+
+    const html = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>'+
+      '<title>CheckMuna Compliance Summary</title><style>'+
+      'body{font-family:"Public Sans",system-ui,sans-serif;color:#141a16;margin:32px;font-size:12.5px}'+
+      'h1{font-size:22px;margin:0}h2{font-size:15px;margin:26px 0 10px;border-bottom:2px solid #1a7a3c;padding-bottom:5px}'+
+      '.sub{color:#6b7280;margin-top:4px}.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}'+
+      '.tile{border:1px solid #e4e7e4;border-radius:8px;padding:10px 12px}.tile b{display:block;font-size:22px}'+
+      'table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #e4e7e4;vertical-align:top}'+
+      'th{font-size:10.5px;text-transform:uppercase;color:#6b7280}.empty{color:#6b7280}'+
+      'footer{margin-top:30px;padding-top:12px;border-top:1px solid #e4e7e4;color:#414a43;line-height:1.6}'+
+      '@media print{body{margin:0}tr{break-inside:avoid}}</style></head><body>'+
+      '<h1>Product Compliance Summary Report</h1>'+
+      '<div class="sub">Generated by CheckMuna · '+new Date().toLocaleString('en-PH')+
+        (filtered ? ' · '+list.length+' of '+allReports.length+' reports (current dashboard filters)' : '')+'</div>'+
+      '<h2>Overview</h2><div class="tiles">'+
+        '<div class="tile">Total scanned<b>'+list.length+'</b></div>'+
+        '<div class="tile">Compliant<b style="color:#1a7a3c">'+ok.length+'</b></div>'+
+        '<div class="tile">Non-Compliant<b style="color:#e0930a">'+nc.length+'</b></div>'+
+        '<div class="tile">Warning<b style="color:#e05050">'+warn.length+'</b></div></div>'+
+      '<h2>Common flag triggers</h2>'+(triggers.length
+        ? '<table><thead><tr><th>Trigger</th><th>Records</th></tr></thead><tbody>'+
+          triggers.map(t => '<tr><td>'+esc(t.name)+'</td><td>'+t.n+'</td></tr>').join('')+'</tbody></table>'
+        : '<p class="empty">No flagged records.</p>')+
+      '<h2>Flagged records</h2>'+table(flagged, 'No Non-Compliant or Warning records.')+
+      '<h2>Compliant products</h2>'+table(ok, 'No compliant records.')+
+      '<footer><b>FDA Philippines</b><br/>Hotline: (02) 8807-0751 · Email: fdaphils@fda.gov.ph · Site: www.fda.gov.ph<br/>'+
+      'A Warning means the product name matched an FDA advisory entry and needs manual verification.</footer>'+
+      '<script>window.onload=function(){window.print()}<\/script></body></html>';
+
+    const w = window.open('', '_blank');
+    if(!w){ alert('Allow pop-ups for this site to open the summary report.'); return; }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
   }
 
   // ── NAV ──
@@ -991,7 +1472,9 @@
       m2.textContent = (r.damage && r.damage.available) ? pct(r.damage.maxConfidence) : '—';
     }
 
-    document.getElementById('detail-keyword-label').textContent = 'Matched keyword';
+    document.getElementById('detail-keyword-label').textContent =
+      isWarning(r) ? 'Matched FDA advisory' : 'Flag trigger';
+    document.getElementById('detail-advisory').style.display = isWarning(r) ? '' : 'none';
     const kw = document.getElementById('detail-keyword');
     kw.textContent = r.matchedKeyword || '—';
     kw.style.color = badgeBg;
@@ -1007,11 +1490,11 @@
       : placeholderIcon();
 
     document.getElementById('detail-reasons-label').textContent =
-      isCompliant(r) && !isDamaged(r) ? 'Notes' : 'Reasons flagged';
+      isCompliant(r) ? 'Notes' : 'Reasons flagged';
     const reasonsEl = document.getElementById('detail-reasons');
     const reasons = Array.isArray(r.reasons) && r.reasons.length
       ? r.reasons : ['No issues recorded for this scan.'];
-    const reasonColor = isCompliant(r) && !isDamaged(r) ? '#1a7a3c' : '#e05050';
+    const reasonColor = badgeBg;
     reasonsEl.innerHTML = reasons.map(reason =>
       '<div class="reason-row">'+
         '<svg viewBox="0 0 24 24" fill="none" stroke="'+reasonColor+'" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4m0 4h.01"/></svg>'+
@@ -1031,6 +1514,8 @@
         (r.label && r.label.extractedText) || '(no text extracted)';
     }
     if(showDamage) renderDamage(r);
+    // Async — the photos arrive after the rest of the panel has painted.
+    renderPhotos(r);
   }
 
   /** The damage half: outcome line, per-class detection counts, model note. */
@@ -1040,17 +1525,18 @@
     const detEl     = document.getElementById('detail-detections');
     const noteEl    = document.getElementById('detail-model-note');
 
-    // "Couldn't run" is not "clean" — say which, so an unscanned foil pack is
-    // never read as a pack that passed.
+    // "Couldn't run" is not "clean" — say which, so a pack whose model never
+    // ran is never read as a pack that passed.
     if(!d.available){
       summaryEl.innerHTML = '<span class="yes-no">Check unavailable</span>';
       detEl.innerHTML = '<div class="ingredients-text">'+
-        esc(d.message || 'No damage model is wired up for this packaging type yet.')+
+        esc(d.message || 'The damage model could not run for this scan.')+
         '</div>';
       noteEl.style.display = '';
-      noteEl.textContent = 'Only Box packaging has a trained detector today. '+
-        'Foil and bottle scans are captured and stored, but report no result '+
-        'until their models ship.';
+      noteEl.textContent = 'Box, foil and bottle each have their own detector. '+
+        'Unavailable means the model was missing, failed its load check, or '+
+        'could not run on every photo. It does not fail the scan, and it is '+
+        'not counted as undamaged.';
       return;
     }
 
@@ -1066,6 +1552,34 @@
       '<span style="margin-left:10px;color:#6b7280;font-size:13px">'+
       pct(d.maxConfidence)+' peak confidence</span>';
 
+    // The detector keeps boxes from 25–35%, but the scan only fails at 70%.
+    noteEl.style.display = '';
+    noteEl.textContent = damageFailed(r)
+      ? 'Peak confidence reached the 70% threshold, so packaging damage failed this scan.'
+      : 'Below the 70% threshold, so these detections did not fail the scan. '+
+        'They are shown for review.';
+
+    // One row per detection when the detector gave geometry — a 91% finding
+    // on the front and a 54% one on the back are two different things to look
+    // at, and collapsing them to a class count hides both the weak one and
+    // where it is. Falls back to per-class counts for records without boxes.
+    const boxes = d.boxes || [];
+    if(boxes.length){
+      const photos = d.photos || [];
+      detEl.innerHTML = boxes.map(b => {
+        const c = detectionColor(b.label);
+        const at = photos.findIndex(p => p.ordinal === b.sourceIndex);
+        const where = at >= 0 ? photoCaption(photos[at], at) : null;
+        return '<div class="finding-row">'+
+          '<span class="det-chip" style="color:'+c+';background:'+c+'1f">'+esc(b.label)+'</span>'+
+          (where ? '<span class="finding-text">'+esc(where)+'</span>'
+                 : '<span class="finding-text">—</span>')+
+          '<span class="finding-conf">'+pct(b.confidence)+'</span>'+
+        '</div>';
+      }).join('');
+      return;
+    }
+
     const counts = d.detectionCounts || {};
     const classes = Object.keys(counts);
     detEl.innerHTML = classes.length
@@ -1077,7 +1591,6 @@
           '</div>').join('')
       : '<div class="ingredients-text">'+esc(d.message||'')+'</div>';
 
-    noteEl.style.display = 'none';
   }
 
   // ══ AUTH ══

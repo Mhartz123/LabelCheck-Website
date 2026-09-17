@@ -20,12 +20,14 @@
 --   reports                    1 row  per scan          (always)
 --   report_label_checks        0..1   per scan          (kind label/both)
 --   report_damage_checks       0..1   per scan          (kind damage/both)
+--   report_damage_images       0..N   per damage check  (one per packaging photo)
 --   report_damage_detections   0..N   per damage check  (one per detection)
 --
 -- Children cascade on delete, so removing a report cleans up everything.
 -- ═══════════════════════════════════════════════════════════════════
 
 drop table if exists report_damage_detections cascade;
+drop table if exists report_damage_images     cascade;
 drop table if exists report_damage_checks     cascade;
 drop table if exists report_label_checks      cascade;
 drop table if exists reports                  cascade;
@@ -41,6 +43,8 @@ create table reports (
   -- report_damage_checks) so the dashboard can sort and filter the list
   -- by packaging without a join.
   packaging_type  text,
+  -- COMPLIANT | NON-COMPLIANT | WARNING. Warning is an FDA advisory name
+  -- match (formerly 'WARNING / BANNED'; lib/status.js folds that in).
   status          text        not null,
   -- The name the user saved the record under — NOT read off a label.
   product_name    text        not null default '',
@@ -52,6 +56,8 @@ create table reports (
 
   constraint reports_kind_check
     check (kind in ('label', 'damage', 'both')),
+  constraint reports_status_check
+    check (status in ('COMPLIANT', 'NON-COMPLIANT', 'WARNING')),
   constraint reports_packaging_type_check
     check (packaging_type is null or packaging_type in ('box', 'foil', 'bottle'))
 );
@@ -73,7 +79,8 @@ create table report_label_checks (
 -- Exists for kind 'damage' and 'both'.
 --
 -- `available` false means the check could not run at all — no model is
--- wired up for foil/bottle yet, or the box model failed to load. That is
+-- loaded for that packaging type, it failed its load check, or inference
+-- failed on every photo. That is
 -- distinct from available = true, is_damaged = false, which is a real
 -- clean result. Keep them apart or "no damage found" counts get inflated
 -- by scans that never ran.
@@ -91,17 +98,72 @@ create table report_damage_checks (
     check (packaging_type is null or packaging_type in ('box', 'foil', 'bottle'))
 );
 
+-- ── Packaging photos ────────────────────────────────────────────────
+-- The four full-frame shots the damage step ran against. reports.image_base64
+-- holds one cover photo for the whole record; these are the actual inputs to
+-- the detector, and they are what report_damage_detections.source_index and
+-- the dashboard's overlay refer to.
+--
+-- `ordinal` is the photo's position in the list the app fed the detector
+-- (BoxSlot order, skipped slots omitted) — NOT the slot's own index. `slot`
+-- carries the name separately so the dashboard can caption a photo "Side 1"
+-- even when an earlier slot was never captured.
+--
+-- Stored inline as data URLs like reports.image_base64 rather than in
+-- Supabase Storage: the app already posts base64 over one endpoint, and a
+-- bucket would need its own credentials, lifecycle and signed-URL handling
+-- for a payload the phone caps at a few hundred KB anyway.
+-- No separate index on report_id: the primary key below leads with it, and
+-- fetching one report's photos is the only query there is.
+create table report_damage_images (
+  report_id    text    not null references reports(id) on delete cascade,
+  ordinal      integer not null,
+  slot         text,
+  -- 'data:image/jpeg;base64,...'
+  image_base64 text    not null,
+
+  primary key (report_id, ordinal),
+  constraint damage_images_slot_check
+    check (slot is null or slot in ('front', 'side1', 'side2', 'back'))
+);
+
 -- ── Individual detections ───────────────────────────────────────────
--- One row per surviving detection, so 'Dent' twice and 'Scratches' once
+-- One row per surviving detection, so 'Structural deformation' twice and
+-- 'Label aberration' once
 -- is three rows. Lets the dashboard count occurrences per class instead
 -- of just listing distinct names.
 create table report_damage_detections (
   id              bigint generated always as identity primary key,
   report_id       text not null references reports(id) on delete cascade,
-  -- Detector class name: 'Dent' or 'Scratches' today.
+  -- Detector class name: 'Structural deformation' (box, foil) or
+  -- 'Label aberration' (box, bottle). Early box records say 'Dent'/'Scratches'.
   detection_class text not null,
   -- Position in the detector's output, so ordering is reproducible.
-  ordinal         integer not null default 0
+  ordinal         integer not null default 0,
+
+  -- ── Geometry, all nullable ─────────────────────────────────────────
+  -- The app sends these as `damage.boxes`. They are null for records saved
+  -- before boxes were captured, and for any future detector that reports
+  -- classes without geometry. Null means "no overlay available" — never
+  -- "no damage", which is report_damage_checks.is_damaged = false.
+  --
+  -- This detection's own confidence, 0..1. Distinct from
+  -- report_damage_checks.max_confidence, which is the peak across the
+  -- whole scan: a 91% dent and a 54% scratch are two rows here and one
+  -- 0.91 there.
+  confidence      real,
+  -- Which packaging photo this was found on: report_damage_images.ordinal.
+  -- Not a foreign key — a report may carry boxes whose photos were too
+  -- large to upload, and losing the geometry with them would be worse than
+  -- an index that points at nothing.
+  source_index    integer,
+  -- Rect on that photo, normalised 0..1 with EXIF orientation already
+  -- baked in, so an overlay lines up at any display size and survives the
+  -- photo being resized. Named box_* because `left` is reserved in SQL.
+  box_left        real,
+  box_top         real,
+  box_width       real,
+  box_height      real
 );
 
 -- ── Indexes ─────────────────────────────────────────────────────────
@@ -124,4 +186,5 @@ create index damage_detections_class_idx  on report_damage_detections (detection
 alter table reports                  enable row level security;
 alter table report_label_checks      enable row level security;
 alter table report_damage_checks     enable row level security;
+alter table report_damage_images     enable row level security;
 alter table report_damage_detections enable row level security;
