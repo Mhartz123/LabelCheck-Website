@@ -1,8 +1,13 @@
 # CheckMuna Dashboard — Vercel + Supabase
 
-Monitoring dashboard for the CheckMuna Android app. Every scan the app saves
-(label check, damage check, or both) is posted to `POST /api/report` and
-shown here to signed-in reviewers.
+Developer monitoring dashboard for the CheckMuna Android app. Every scan the
+app saves (label check, damage check, or both) is posted to
+`POST /api/report` and shown here to the signed-in development team, so the
+app's output — what it read, what it detected and the verdict it reached —
+can be checked against the photos it was given.
+
+It is an internal tool. Nobody outside the team uses it, and it never
+re-decides a verdict; it only shows what the app decided.
 
 ## Three scan flows, five tables
 
@@ -11,7 +16,7 @@ via `kind`:
 
 | `kind` | Flow | Halves stored |
 |---|---|---|
-| `label` | Check Labels — 3 close-ups → OCR → FDA advisories | label only |
+| `label` | Check Labels — 3 close-ups → OCR → advisory list | label only |
 | `damage` | Damage Detection — 4 packaging photos → detector | damage only |
 | `both` | Inspection Mode — label check *then* packaging photos, saved as **one** record | both |
 
@@ -100,8 +105,33 @@ The app decides the verdict; the dashboard never re-decides it.
 | Status | Meaning |
 |---|---|
 | `COMPLIANT` | every check that ran passed |
-| `NON-COMPLIANT` | expired, no/unreadable expiry, no ingredient list, or packaging damage ≥ 0.70 |
-| `WARNING` | the product name matched an FDA Philippines advisory entry — flagged for manual verification |
+| `NON-COMPLIANT` | expired, no/unreadable expiry, no ingredient list on a box or bottle, or packaging damage ≥ 0.70 |
+| `WARNING` | the product name matched an entry on the app's advisory list — flagged for manual verification |
+
+An ingredient list is required only on a box or bottle; a missing one on
+foil is disregarded.
+
+Those three strings are what is stored. What is *shown* for a single record
+is the full verdict, which names what it is based on — the same wording rule
+as the app's `ScanRecordUi.statusTitle`:
+
+| Shown | When |
+|---|---|
+| Compliant with labeling requirements | label check passed |
+| Compliant with packaging requirements | damage check ran and passed |
+| Compliant with labeling and packaging requirements | inspection, both passed |
+| Non-compliant based on labeling / packaging / labeling and packaging requirements | names the half (or halves) that failed |
+| Warning based on advisory | advisory-list match |
+| No result — damage check could not run | see below |
+
+A compliant verdict only names what was actually scanned: a label check
+never looked at the packaging, and neither did an inspection whose damage
+check was unavailable.
+
+**No result.** The app now refuses to save a damage scan whose detector could
+not run. Older damage-only records in that state were stored as `COMPLIANT`
+with `available = false`; nothing was inspected, so the dashboard shows them
+as *No result* and counts them under no verdict, the same as the app does.
 
 `WARNING` used to be `WARNING / BANNED`. `lib/status.js` folds the old
 spelling (and anything unrecognised, as `NON-COMPLIANT`) on ingest and on
@@ -117,10 +147,15 @@ and adds a check constraint; it is safe to re-run.
 - **Reports** — filter by mode, packaging and verdict (plus "Damage found"
   for any detection), search, sort, delete, CSV export, and a printable
   **Summary report** (save as PDF from the print dialog) that mirrors the
-  app's Product Compliance Summary Report.
-- **Detail** — verdict, reasons, advisory note with the FDA hotline for a
+  app's Product Compliance Summary Report. The CSV carries both the stored
+  status and the full verdict.
+- **Detail** — full verdict, reasons, a verify-this-match note for a
   Warning, label fields and OCR text, damage findings, and the packaging
   photos with detection boxes redrawn.
+
+Reasons and matched keywords are printed exactly as the app sent them —
+checking that text is the point — so their wording follows the app build
+that produced the record, not this repo.
 
 ### Deploying the schema
 

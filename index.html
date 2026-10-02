@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CheckMuna Dashboard</title>
+  <title>CheckMuna Developer Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -117,7 +117,7 @@
     .row-mid{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
     .row-name{font-size:15px;font-weight:800;letter-spacing:-.01em;color:var(--text)}
     .row-meta{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
-    .badge{font-size:11px;font-weight:700;color:#fff;padding:3px 9px;border-radius:5px}
+    .badge{font-size:11px;font-weight:700;color:#fff;padding:3px 9px;border-radius:5px;line-height:1.45}
     /* Which of the two checks produced a row, so the mixed list stays readable */
     .type-badge{font-size:10px;font-weight:800;letter-spacing:.4px;padding:3px 8px;border-radius:5px;border:1px solid}
     .type-badge.label{color:var(--green);background:var(--green-light);border-color:#b6e8c8}
@@ -148,7 +148,7 @@
     .detail-img{width:100%;aspect-ratio:1;border-radius:16px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);overflow:hidden}
     .detail-img img{width:100%;height:100%;object-fit:cover}
     .detail-img svg{width:64px;height:64px;opacity:.35}
-    .detail-badge{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;color:#fff;padding:8px 14px;border-radius:9px;font-size:13px;font-weight:800;letter-spacing:.3px}
+    .detail-badge{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;color:#fff;padding:8px 14px;border-radius:9px;font-size:13px;font-weight:800;letter-spacing:.3px;line-height:1.35}
     .detail-keyword-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px 18px}
     .detail-label{font-size:11px;font-weight:700;color:#9ca3af;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px}
     .detail-keyword-val{font-size:16px;font-weight:800}
@@ -309,7 +309,7 @@
     <header class="topbar">
       <div>
         <div class="topbar-title" id="page-title">Dashboard</div>
-        <div class="topbar-sub" id="page-subtitle">Compliance overview · Scan · Verify · Record</div>
+        <div class="topbar-sub" id="page-subtitle">Developer monitoring · app output checks</div>
       </div>
       <div style="flex:1"></div>
       <div class="live-badge">
@@ -348,7 +348,7 @@
           </div>
           <div class="stat-card">
             <div class="stat-icon" style="background:#fdeaea"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="#e05050" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z"/><path d="M12 8v4m0 4h.01"/></svg></div>
-            <div><div class="stat-num" id="stat-warning">—</div><div class="stat-label">WARNING · FDA ADVISORY</div></div>
+            <div><div class="stat-num" id="stat-warning">—</div><div class="stat-label">WARNING · ADVISORY MATCH</div></div>
           </div>
           <div class="stat-card">
             <div class="stat-icon" style="background:#e3f2fd"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="#1565c0" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.3 7L12 12l8.7-5M12 22V12"/></svg></div>
@@ -377,7 +377,8 @@
                 <div class="legend-div"></div>
                 <div class="legend-row"><div class="legend-dot" style="background:#e05050"></div><span class="legend-name">Warning</span><span class="legend-val" id="leg-warn">—</span></div>
                 <div class="legend-div"></div>
-                <div class="legend-note">Warning flags a product for manual verification: its name matched an FDA Philippines advisory.</div>
+                <div class="legend-note">Warning flags a product for manual verification: its name matched an entry on the app's advisory list.</div>
+                <div class="legend-note" id="leg-noresult" style="display:none"></div>
               </div>
             </div>
           </div>
@@ -416,21 +417,20 @@
             <div class="card-title">How a verdict is decided</div>
             <div class="card-sub">The app's rules, applied in order · the first that fires decides</div>
             <ol class="rule-list">
-              <li><span class="rule-badge" style="background:#e05050">WARNING</span><span>The label text matched an entry on the FDA Philippines advisory list (about 20,800 unregistered health products).</span></li>
-              <li><span class="rule-badge" style="background:#e0930a">NON-COMPLIANT</span><span>Expired, no expiry printed, expiry photographed but unreadable, or no ingredient list. Also packaging damage with top confidence of 70% or more.</span></li>
-              <li><span class="rule-badge" style="background:#1a7a3c">COMPLIANT</span><span>None of the above. Detections below 70% are still drawn on the photos for review.</span></li>
+              <li><span class="rule-badge" style="background:#e05050">WARNING</span><span><strong>Based on advisory.</strong> The product name read off the label matched an entry on the app's advisory list.</span></li>
+              <li><span class="rule-badge" style="background:#e0930a">NON-COMPLIANT</span><span><strong>Based on labeling requirements.</strong> The expiry date is missing, illegible or past, or the ingredient list is missing or illegible on a box or bottle.</span></li>
+              <li><span class="rule-badge" style="background:#e0930a">NON-COMPLIANT</span><span><strong>Based on packaging requirements.</strong> A packaging defect was detected with top confidence of 70% or more.</span></li>
+              <li><span class="rule-badge" style="background:#1a7a3c">COMPLIANT</span><span><strong>With the requirements it checked.</strong> No advisory match, a legible and valid expiry date, and no detected defect. Detections below 70% are still drawn on the photos for review.</span></li>
             </ol>
-            <div class="rule-foot">An unreadable value is never a pass. A damage check that could not run is reported as <em>unavailable</em>, which is neither damaged nor clean.</div>
+            <div class="rule-foot">A verdict only names what was scanned: labeling for a label check, packaging for a damage check, both for an inspection. An ingredient list is required only on a box or bottle; a missing one on foil is disregarded. An unreadable value is never a pass, and a damage check that could not run gets <em>no result</em> at all.</div>
           </div>
         </div>
 
         <div class="footer-strip">
-          <strong class="footer-item" style="font-weight:800">FDA Philippines</strong>
-          <div class="footer-item"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#1a7a3c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.95.68l1.5 4.5a1 1 0 01-.5 1.2l-2.26 1.13a11 11 0 005.5 5.5l1.13-2.26a1 1 0 011.2-.5l4.5 1.5a1 1 0 01.68.95V19a2 2 0 01-2 2h-1C9.7 21 3 14.3 3 6V5z"/></svg>Hotline <strong>(02) 8807-0751</strong></div>
-          <div class="footer-item"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#1a7a3c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 014 9 15 15 0 01-4 9 15 15 0 01-4-9 15 15 0 014-9z"/></svg><a href="https://www.fda.gov.ph" target="_blank" rel="noopener">www.fda.gov.ph</a></div>
-          <div class="footer-item"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#1a7a3c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l7.9 5.26a2 2 0 002.2 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg><a href="mailto:fdaphils@fda.gov.ph">fdaphils@fda.gov.ph</a></div>
+          <strong class="footer-item" style="font-weight:800">CheckMuna</strong>
+          <div class="footer-item">Shows each scan exactly as the app uploaded it. Verdicts are the app's own and are never re-decided here.</div>
           <div style="flex:1"></div>
-          <span class="footer-copy">CheckMuna monitoring dashboard · not an official FDA service</span>
+          <span class="footer-copy">Developer monitoring dashboard · internal use</span>
         </div>
       </div>
 
@@ -518,12 +518,11 @@
             <div class="detail-img" id="detail-img"></div>
             <div class="detail-badge" id="detail-badge"></div>
             <!-- Warning is a prompt to verify, not a finding — say so, and
-                 give the number to call. -->
+                 point at what to check it against. -->
             <div class="advisory-note" id="detail-advisory" style="display:none">
               <strong>Manual verification needed.</strong> The product name matched an entry on the
-              FDA Philippines advisory list of unregistered health products. OCR matching favours
-              recall, so confirm the product before acting. To report it, call the FDA hotline
-              <strong>(02) 8807-0751</strong> or email <a href="mailto:fdaphils@fda.gov.ph">fdaphils@fda.gov.ph</a>.
+              app's advisory list. OCR matching favours recall, so compare the matched entry with
+              the extracted text before treating this as a true match.
             </div>
             <div class="detail-keyword-card">
               <div class="detail-label" id="detail-keyword-label">Matched keyword</div>
@@ -623,8 +622,17 @@
   // the old spellings, and they are the same verdict.
   const WARNING_STATUSES = ['WARNING', 'WARNING / BANNED', 'BANNED'];
   function isWarning(r){ return WARNING_STATUSES.includes(r.status); }
-  function isCompliant(r){ return r.status === 'COMPLIANT'; }
-  function isNonCompliant(r){ return !isCompliant(r) && !isWarning(r); }
+  // A damage-only scan saved while the detector could not run. The app now
+  // refuses to save one, but older records in that state were stored as
+  // COMPLIANT. Nothing was inspected, so — like the app — they are shown as
+  // having no result and counted under no verdict.
+  function hasNoVerdict(r){
+    return kindOf(r) === 'damage' && r.status === 'COMPLIANT' &&
+      !(r.damage && r.damage.available);
+  }
+  function isCompliant(r){ return r.status === 'COMPLIANT' && !hasNoVerdict(r); }
+  function isNonCompliant(r){ return r.status !== 'COMPLIANT' && !isWarning(r); }
+  function isFlagged(r){ return isWarning(r) || isNonCompliant(r); }
 
   // The app filters damage twice: each detector keeps boxes at 0.25–0.35 and
   // draws them, but the engine only fails the scan at 0.70. So "the detector
@@ -673,16 +681,60 @@
   // found something below the fail threshold sorts just above clean ones.
   function severityOf(r){
     if(isWarning(r))  return 4;
-    if(!isCompliant(r)) return 3;
+    if(isNonCompliant(r)) return 3;
     if(isDamaged(r))  return 2;
     return 1;
   }
 
-  const VERDICT_COLORS = { ok:'#1a7a3c', nc:'#e0930a', warn:'#e05050' };
+  // ── VERDICT WORDING ──
+  // Mirrors the app's ScanRecordUi.statusTitle: a verdict is never the bare
+  // word "Compliant", which reads as a ruling on the whole product. It names
+  // the requirements it is based on — the ones the scan failed when
+  // non-compliant, otherwise the ones it actually checked.
+  function mentionsDamage(t){ return String(t || '').toLowerCase().includes('packaging damage'); }
+  function failedPackaging(r){
+    if(!isNonCompliant(r) || kindOf(r) === 'label') return false;
+    if(kindOf(r) === 'damage') return true;
+    return mentionsDamage(r.matchedKeyword) || (r.reasons || []).some(mentionsDamage);
+  }
+  // An inspection with no reason pointing at the packaging is read as a label
+  // failure — all a record saved before the damage check existed could be.
+  function failedLabeling(r){
+    if(!isNonCompliant(r) || kindOf(r) === 'damage') return false;
+    if(kindOf(r) === 'label') return true;
+    return !failedPackaging(r) || (r.reasons || []).some(x => !mentionsDamage(x));
+  }
+  function requirementsOf(r){
+    let labeling, packaging;
+    if(isNonCompliant(r)){
+      labeling = failedLabeling(r);
+      packaging = failedPackaging(r);
+    } else {
+      // A label-only scan never looked at the packaging, and neither did an
+      // inspection whose damage check could not run.
+      labeling = kindOf(r) !== 'damage';
+      packaging = kindOf(r) !== 'label' && !!(r.damage && r.damage.available);
+    }
+    if(labeling && packaging) return 'labeling and packaging';
+    return packaging ? 'packaging' : 'labeling';
+  }
+  /** The verdict in full, e.g. "Compliant with labeling requirements". */
+  function verdictTitle(r){
+    if(hasNoVerdict(r)) return 'No result — damage check could not run';
+    if(isWarning(r))    return 'Warning based on advisory';
+    if(isCompliant(r))  return 'Compliant with ' + requirementsOf(r) + ' requirements';
+    return 'Non-compliant based on ' + requirementsOf(r) + ' requirements';
+  }
+
+  const VERDICT_COLORS = { ok:'#1a7a3c', nc:'#e0930a', warn:'#e05050', none:'#8a938c' };
+  // `label` is the stored status, for counts and the CSV; `title` is the full
+  // verdict shown wherever a single record is on screen.
   function badgeFor(r){
-    if(isWarning(r))    return { bg:VERDICT_COLORS.warn, label:'WARNING' };
-    if(!isCompliant(r)) return { bg:VERDICT_COLORS.nc,   label:'NON-COMPLIANT' };
-    return { bg:VERDICT_COLORS.ok, label:'COMPLIANT' };
+    const title = verdictTitle(r).toUpperCase();
+    if(hasNoVerdict(r)) return { bg:VERDICT_COLORS.none, label:'NO RESULT', title };
+    if(isWarning(r))    return { bg:VERDICT_COLORS.warn, label:'WARNING', title };
+    if(!isCompliant(r)) return { bg:VERDICT_COLORS.nc,   label:'NON-COMPLIANT', title };
+    return { bg:VERDICT_COLORS.ok, label:'COMPLIANT', title };
   }
 
   function pct(v){ return (v==null || isNaN(v)) ? '—' : Math.round(v*100)+'%'; }
@@ -1020,7 +1072,7 @@
     emptyEl.style.display='none';
 
     filtered.slice(0, visibleCount).forEach(r=>{
-      const { bg: badgeBg, label: badgeLabel } = badgeFor(r);
+      const { bg: badgeBg, title: badgeLabel } = badgeFor(r);
       const checked = selectedIds.has(r.id);
 
       const row = document.createElement('div');
@@ -1093,14 +1145,21 @@
   function share(n, d){ return d ? Math.round(n / d * 100) + '%' : '—'; }
 
   function updateDashboard(){
-    const total = allReports.length;
-    // The app's verdicts are mutually exclusive, so the arcs sum to the total.
+    // The app's verdicts are mutually exclusive, so the arcs sum to the
+    // judged total — every scan except the ones with no result.
     const warn = allReports.filter(isWarning).length;
     const nc   = allReports.filter(isNonCompliant).length;
     const ok   = allReports.filter(isCompliant).length;
+    const total = ok + nc + warn;
+    const noResult = allReports.length - total;
     const dmgFailed = allReports.filter(damageFailed).length;
 
-    setText('stat-total',   total.toLocaleString());
+    const noResultEl = document.getElementById('leg-noresult');
+    noResultEl.style.display = noResult ? '' : 'none';
+    noResultEl.textContent = noResult + (noResult === 1 ? ' damage scan has' : ' damage scans have') +
+      ' no result because the damage check could not run. Not counted above.';
+
+    setText('stat-total',   allReports.length.toLocaleString());
     setText('stat-nc',      nc.toLocaleString());
     setText('stat-warning', warn.toLocaleString());
     setText('stat-damaged', dmgFailed.toLocaleString());
@@ -1197,7 +1256,7 @@
    */
   function updateTriggers(){
     const counts = new Map();
-    allReports.filter(r => !isCompliant(r)).forEach(r => {
+    allReports.filter(isFlagged).forEach(r => {
       flagTags(r).forEach(t => {
         const key = (isWarning(r) ? 'a:' : 't:') + t.toLowerCase();
         const cur = counts.get(key) || { name: t, advisory: isWarning(r), n: 0 };
@@ -1295,7 +1354,7 @@
   // half's own, blank where that half wasn't run. An inspection row fills
   // both halves. Exports whatever the current filters and sort produced.
   function exportCSV(){
-    const header = ['ID','Mode','Record Name','Packaging','Status','Scanned',
+    const header = ['ID','Mode','Record Name','Packaging','Status','Verdict','Scanned',
                     'Detected Product','Expiration','Ingredients',
                     'Damage Checked','Damage Found','Failed On Damage','Detections','Max Confidence',
                     'Matched Keyword','Reasons'];
@@ -1309,6 +1368,7 @@
         r.productName,
         packagingOf(r) ? packagingLabel(r) : '',
         badgeFor(r).label,
+        verdictTitle(r),
         r.scannedAt,
         L ? (L.detectedProductName || '') : '',
         L ? (L.expiration || '') : '',
@@ -1340,7 +1400,8 @@
     const list = getFiltered();
     const filtered = list.length !== allReports.length;
     const ok = list.filter(isCompliant), nc = list.filter(isNonCompliant), warn = list.filter(isWarning);
-    const flagged = list.filter(r => !isCompliant(r));
+    const flagged = list.filter(isFlagged);
+    const noResult = list.filter(hasNoVerdict);
 
     const counts = new Map();
     flagged.forEach(r => flagTags(r).forEach(t => {
@@ -1352,7 +1413,7 @@
 
     const row = r => '<tr><td>'+esc(r.productName || 'Unnamed Record')+'</td><td>'+
       MODE_NAMES[kindOf(r)]+(packagingOf(r) ? ' · '+esc(packagingLabel(r)) : '')+'</td><td>'+
-      fmtShort(r.scannedAt)+'</td><td><b style="color:'+badgeFor(r).bg+'">'+badgeFor(r).label+'</b></td><td>'+
+      fmtShort(r.scannedAt)+'</td><td><b style="color:'+badgeFor(r).bg+'">'+esc(badgeFor(r).title)+'</b></td><td>'+
       esc((r.reasons || []).join(' ') || '—')+'</td></tr>';
     const table = (rows, empty) => rows.length
       ? '<table><thead><tr><th>Record</th><th>Mode</th><th>Scanned</th><th>Status</th><th>Reasons</th></tr></thead><tbody>'+
@@ -1377,14 +1438,20 @@
         '<div class="tile">Compliant<b style="color:#1a7a3c">'+ok.length+'</b></div>'+
         '<div class="tile">Non-Compliant<b style="color:#e0930a">'+nc.length+'</b></div>'+
         '<div class="tile">Warning<b style="color:#e05050">'+warn.length+'</b></div></div>'+
+      (noResult.length
+        ? '<p class="empty" style="margin-top:10px">'+noResult.length+' damage scan(s) have no result because the '+
+          'damage check could not run: '+noResult.map(r => esc(r.productName || 'Unnamed Record')).join(', ')+
+          '. They are not counted as compliant or flagged.</p>'
+        : '')+
       '<h2>Common flag triggers</h2>'+(triggers.length
         ? '<table><thead><tr><th>Trigger</th><th>Records</th></tr></thead><tbody>'+
           triggers.map(t => '<tr><td>'+esc(t.name)+'</td><td>'+t.n+'</td></tr>').join('')+'</tbody></table>'
         : '<p class="empty">No flagged records.</p>')+
       '<h2>Flagged records</h2>'+table(flagged, 'No Non-Compliant or Warning records.')+
       '<h2>Compliant products</h2>'+table(ok, 'No compliant records.')+
-      '<footer><b>FDA Philippines</b><br/>Hotline: (02) 8807-0751 · Email: fdaphils@fda.gov.ph · Site: www.fda.gov.ph<br/>'+
-      'A Warning means the product name matched an FDA advisory entry and needs manual verification.</footer>'+
+      '<footer><b>CheckMuna developer dashboard</b> · internal monitoring of the app\'s scan output<br/>'+
+      'Each verdict is the app\'s own and names the requirements it is based on. '+
+      'A Warning means the product name matched an advisory-list entry and needs manual verification.</footer>'+
       '<script>window.onload=function(){window.print()}<\/script></body></html>';
 
     const w = window.open('', '_blank');
@@ -1396,7 +1463,7 @@
 
   // ── NAV ──
   const titles = {
-    dashboard: ['Dashboard', 'Compliance overview · Scan · Verify · Record'],
+    dashboard: ['Dashboard', 'Developer monitoring · app output checks'],
     reports:   ['Reports', 'Label checks and physical damage checks'],
   };
 
@@ -1440,7 +1507,7 @@
     const kind = kindOf(r);
     const showLabel  = hasLabel(r);
     const showDamage = hasDamage(r);
-    const { bg: badgeBg, label: badgeLabel } = badgeFor(r);
+    const { bg: badgeBg, title: badgeLabel } = badgeFor(r);
     const name = r.productName || 'Unnamed Record';
 
     document.getElementById('page-title').textContent = name;
@@ -1473,7 +1540,7 @@
     }
 
     document.getElementById('detail-keyword-label').textContent =
-      isWarning(r) ? 'Matched FDA advisory' : 'Flag trigger';
+      isWarning(r) ? 'Matched advisory' : 'Flag trigger';
     document.getElementById('detail-advisory').style.display = isWarning(r) ? '' : 'none';
     const kw = document.getElementById('detail-keyword');
     kw.textContent = r.matchedKeyword || '—';
@@ -1490,10 +1557,13 @@
       : placeholderIcon();
 
     document.getElementById('detail-reasons-label').textContent =
-      isCompliant(r) ? 'Notes' : 'Reasons flagged';
+      isFlagged(r) ? 'Reasons flagged' : 'Notes';
     const reasonsEl = document.getElementById('detail-reasons');
     const reasons = Array.isArray(r.reasons) && r.reasons.length
-      ? r.reasons : ['No issues recorded for this scan.'];
+      ? r.reasons
+      : [hasNoVerdict(r)
+          ? 'The damage check could not run when this scan was taken, so the packaging was never inspected. This record has no result.'
+          : 'No issues recorded for this scan.'];
     const reasonColor = badgeBg;
     reasonsEl.innerHTML = reasons.map(reason =>
       '<div class="reason-row">'+
