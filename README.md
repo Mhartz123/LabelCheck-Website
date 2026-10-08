@@ -91,7 +91,7 @@ the detections that reference it.
 
 These are the heaviest rows in the database and the least often read, so
 `GET /api/reports` deliberately does not carry them — it returns only each
-photo's ordinal and slot. The bytes come from `GET /api/reports/images` when
+photo's ordinal and slot. The bytes come from `GET /api/reports/detail` when
 a detail view opens. Without that split the 30-second dashboard poll would
 re-download every packaging photo ever uploaded.
 
@@ -157,7 +157,86 @@ Reasons and matched keywords are printed exactly as the app sent them —
 checking that text is the point — so their wording follows the app build
 that produced the record, not this repo.
 
+### Sync and stable record ids
+
+The app's **Sync to dashboard** button re-sends every record on the phone.
+To make that safe, the payload `id` is now stable —
+`"<recordName>@<scannedAt>"`, e.g. `Tide_Powder@2026-10-08T14:03:22.123456`
+— and is stored as `reports.record_uid` (unique, nullable).
+
+Sync first calls `POST /api/sync-check` with `{"records":[{id, recordName,
+scannedAt}]}` and gets back `{"existing":[ids]}`. It then uploads the
+missing records in full and re-sends the rest **without photos**. The app
+sends nothing unless sync-check answers 200, so that endpoint has to be
+deployed before anyone presses Sync.
+
+`POST /api/report` and sync-check match a record the same way:
+
+1. `record_uid = id`;
+2. else a **legacy** row (uploaded with a random `<epoch_ms>_<hash>` id, so
+   `record_uid` is NULL) with the same `scanned_at` and the same sanitised
+   name — trim, then space and `\ / : * ? " < > |` become `_`, exactly the
+   app's `ScanStore.sanitizeName`. That row is given the `record_uid`.
+
+A found row is **updated**, never duplicated: timing/report columns take the
+new values, everything else only fills what is empty, child rows are
+upserted on their keys, and missing photos mean "keep what you have". A new
+record is inserted with `ON CONFLICT`, so two concurrent syncs can't race
+into a second row. All of it runs inside one Postgres function per request
+(`checkmuna_ingest_report`, `checkmuna_sync_check`) — one transaction, one
+round trip.
+
+If an old upload was retried it may already exist twice; sync claims the
+oldest copy. The end of `supabase-sync-migration.sql` has a query that
+lists such duplicates.
+
+### On-device ML timings
+
+New records carry `timings` — `[{group: "ocr"|"damageModel", label,
+totalMs, runs}]` — and the damage half carries its own `timings` plus
+`report` (per-photo `preprocessMs`/`inferenceMs`, `modelLoadMs`). Both are
+stored as jsonb, and the API derives numeric columns from them:
+`reports.ml_total_ms`, `ocr_ms`, `damage_model_ms`, and on
+`report_damage_checks` `inference_mean_ms`/`min`/`max` (over photos that
+ran) and `model_load_ms` (NULL when the model was already loaded).
+
+A group that never ran is NULL, not 0, and so is everything on records from
+before timings — the dashboard shows "—" for those and leaves them out of
+its averages.
+
+### Egress
+
+Supabase bills every byte a query returns, and the dashboard polls. So:
+
+- The reports list carries no photo bytes and no OCR text. A cover photo is
+  `GET /api/reports/cover?id=…`, served as an image with a 7-day browser
+  cache; OCR text, stage timings and packaging photos come from
+  `GET /api/reports/detail?id=…` for the one report that's open.
+- After the first load, the 30-second poll asks `GET /api/reports?since=…`
+  and gets only rows whose `updated_at` moved — usually none. A count check
+  catches deletions and triggers one full reload.
+- A hidden browser tab doesn't poll.
+- The list is read in pages of 1000 (Supabase's row cap), so a large sync
+  doesn't silently truncate it.
+
 ### Deploying the schema
+
+**New project:** run `supabase-full-schema.sql` — every table, function and
+permission in one file, including the login tables. It's all `if not
+exists`, so it drops nothing.
+
+**Moving accounts?** Run the full schema in the new project, then
+`python scripts/migrate_supabase.py` to copy every report, photo and
+dashboard account across (it asks for both projects' URL and service_role
+key, is safe to re-run, and checks the row counts at the end). Then change
+`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in Vercel and redeploy.
+
+**Existing project:** run `supabase-sync-migration.sql` before deploying
+this API version. It adds the record_uid, timing, `updated_at` and
+`has_image` columns and the functions, drops nothing, and is safe to re-run.
+
+The older files below describe how earlier databases were built.
+
 
 Run `supabase-schema.sql` in the Supabase SQL Editor.
 
@@ -181,7 +260,8 @@ ones — the dashboard needs clean results to show a ratio against.
 
 ```jsonc
 {
-  "id": "<epoch_ms>_<name hash>",
+  "id": "<recordName>@<scannedAt>",               // stable; see Sync above
+  "recordName": "<record name, sanitised>",
   "kind": "label" | "damage" | "both",
   "packagingType": "box" | "foil" | "bottle" | null,
   "productName": "<record name>",
@@ -189,7 +269,10 @@ ones — the dashboard needs clean results to show a ratio against.
   "matchedKeyword": "...",
   "reasons": ["..."],
   "scannedAt": "<iso8601>",
-  "imageBase64": "data:image/jpeg;base64,...",   // optional, ≤200 KB
+  "imageBase64": "data:image/jpeg;base64,...",   // optional, ≤200 KB; omitted on a sync re-send
+  "timings": [                                   // omitted on records from before timings
+    { "group": "ocr", "label": "Text recognition", "totalMs": 1480.2, "runs": 3 }
+  ],
 
   "label": {                    // omitted when kind = "damage"
     "detectedProductName": "...",
@@ -217,6 +300,10 @@ ones — the dashboard needs clean results to show a ratio against.
     // The photos those boxes sit on, in the order the detector saw them.
     // An entry with no imageBase64 is a photo that couldn't be encoded —
     // it holds its place so sourceIndex keeps pointing at the right shot.
+    "timings": [ /* damage-model stages, same shape */ ],
+    "report": { "modelLoadMs": 820, "photos": [{ "preprocessMs": 12, "inferenceMs": 41, "succeeded": true }] },
+
+    // Omitted on a sync re-send: absent means "keep what you have".
     "images": [
       { "slot": "front", "imageBase64": "data:image/jpeg;base64,..." },
       { "slot": "side1", "imageBase64": "data:image/jpeg;base64,..." }
@@ -239,7 +326,9 @@ The dashboard is behind a login; the app's upload endpoint is not.
 |---|---|---|
 | `POST /api/report` | the Flutter app | open — the phone has no account to sign in with |
 | `GET /api/reports` | the dashboard | session cookie required |
-| `GET /api/reports/images` | the dashboard | session cookie required |
+| `POST /api/sync-check` | the Flutter app | open |
+| `GET /api/reports/detail` | the dashboard | session cookie required |
+| `GET /api/reports/cover` | the dashboard | session cookie required |
 | `POST /api/reports/delete` | the dashboard | session cookie required |
 | `POST /api/auth/login` · `logout` · `GET /api/auth/me` | the login screen | — |
 
@@ -314,8 +403,12 @@ This version splits things up:
   instead of a hardcoded `http://localhost:8080`.
 - `api/report.js` — `POST /api/report` (used by the Flutter app)
 - `api/reports.js` — `GET /api/reports` (used by the dashboard)
-- `api/reports/images.js` — `GET /api/reports/images?id=…`, the packaging
-  photos for one report, fetched only when a detail view opens
+- `api/sync-check.js` — `POST /api/sync-check` (used by the app's Sync)
+- `api/reports/detail.js` — `GET /api/reports/detail?id=…`, OCR text, stage
+  timings and packaging photos for one report, fetched when its detail
+  view opens
+- `api/reports/cover.js` — `GET /api/reports/cover?id=…`, one report's
+  cover photo as a cacheable image
 - `api/reports/delete.js` — `POST /api/reports/delete`
 - `login.html` — the sign-in screen
 - `api/auth/login.js`, `api/auth/logout.js`, `api/auth/me.js` — the login API
@@ -324,6 +417,7 @@ This version splits things up:
 - `lib/auth.js` — password hashing, session cookies, the `requireAuth` wrapper
 - `scripts/create-user.js` · `scripts/create_user.py` — print the SQL for a
   new account (same output; use whichever runtime you have)
+- `scripts/migrate_supabase.py` — copy all data to another Supabase project
 
 Each file under `api/` becomes its own serverless function automatically —
 no extra Vercel config needed.
@@ -335,12 +429,10 @@ routes will error out (they need `SUPABASE_URL` and
 `SUPABASE_SERVICE_ROLE_KEY` to exist).
 
 1. Create a free project at supabase.com.
-2. Open the SQL Editor and run the contents of `supabase-schema.sql`
-   (creates all five report tables). This DROPS existing data — see
-   "Deploying the schema" above, which also covers upgrading a database
-   that already has reports in it. Then run `supabase-auth-schema.sql`
-   (the two login tables) and create your first account — see
-   "Signing in" above.
+2. Open the SQL Editor and run the contents of `supabase-full-schema.sql`
+   (every table, including the two login tables, and the functions the API
+   calls). Then copy your data over with `scripts/migrate_supabase.py`, or
+   create your first account — see "Signing in" above.
 3. Go to Project Settings → API and copy:
    - Project URL → `SUPABASE_URL`
    - `service_role` secret key → `SUPABASE_SERVICE_ROLE_KEY`

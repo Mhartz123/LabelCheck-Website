@@ -112,19 +112,104 @@ function toDetectionRows(reportId, damage) {
   }));
 }
 
+// ── Timings ─────────────────────────────────────────────────────────
+
+const TIMING_GROUPS = ['ocr', 'damageModel'];
+// A scan has a handful of stages; this is only a ceiling for an open endpoint.
+const MAX_TIMINGS = 64;
+const MAX_REPORT_CHARS = 64 * 1024;
+
 /**
- * Ingest for all three flows.
+ * `timings` as [{group, label, totalMs, runs}], or null when the record has
+ * none — every record saved before the app measured them. Null, not [], so
+ * the dashboard can tell "not measured" from "measured nothing".
+ */
+function toTimings(raw) {
+  if (!Array.isArray(raw)) return null;
+  const list = raw.slice(0, MAX_TIMINGS).map((t) => {
+    const o = (t && typeof t === 'object') ? t : {};
+    const ms = Number(o.totalMs);
+    if (o.totalMs == null || !Number.isFinite(ms) || ms < 0) return null;
+    const runs = Number(o.runs);
+    return {
+      group:   TIMING_GROUPS.includes(o.group) ? o.group : String(o.group || 'other').slice(0, 40),
+      label:   String(o.label || '').slice(0, 120),
+      totalMs: ms,
+      runs:    Number.isInteger(runs) && runs > 0 ? runs : 1,
+    };
+  }).filter(Boolean);
+  return list.length ? list : null;
+}
+
+/**
+ * Sum of one group's stages (or all of them), or null when that group never
+ * ran — a label-only scan has no damage-model time, and storing 0 for it
+ * would drag the dashboard's averages toward zero.
+ */
+function sumTimings(timings, group) {
+  if (!timings) return null;
+  const rows = group ? timings.filter((t) => t.group === group) : timings;
+  return rows.length ? rows.reduce((acc, t) => acc + t.totalMs, 0) : null;
+}
+
+/** `damage.report` as sent, if it is an object of sane size. */
+function toDamageReport(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  return JSON.stringify(raw).length <= MAX_REPORT_CHARS ? raw : null;
+}
+
+/**
+ * Per-photo inference figures pulled out of `damage.report`, matching the
+ * app's DamageSessionReport: over the photos that ran (`succeeded` absent
+ * means it ran — older reports only listed photos that did). modelLoadMs is
+ * absent when the model was already loaded before the scan, and stays null.
+ */
+function inferenceStats(report) {
+  const photos = report && Array.isArray(report.photos) ? report.photos : [];
+  const ms = photos
+    .filter((p) => p && typeof p === 'object' && p.succeeded !== false)
+    .map((p) => (p.inferenceMs == null ? NaN : Number(p.inferenceMs)))
+    .filter((n) => Number.isFinite(n) && n >= 0);
+  const load = report && report.modelLoadMs != null ? Number(report.modelLoadMs) : NaN;
+  return {
+    inference_mean_ms: ms.length ? ms.reduce((a, b) => a + b, 0) / ms.length : null,
+    inference_min_ms:  ms.length ? Math.min(...ms) : null,
+    inference_max_ms:  ms.length ? Math.max(...ms) : null,
+    model_load_ms:     Number.isFinite(load) && load >= 0 ? load : null,
+  };
+}
+
+function isDataImage(v) {
+  return typeof v === 'string' && v.startsWith('data:image/') && v.length <= MAX_IMAGE_CHARS;
+}
+
+/**
+ * Ingest for all three flows — insert a new record, or update one the
+ * server already has.
  *
- * A record is written across up to five tables depending on `kind`:
- * the parent row always, plus a label row (label/both), a damage row
- * (damage/both), one row per packaging photo, and one row per detected
- * damage instance.
+ * A record spans up to five tables depending on `kind`: the parent row
+ * always, plus a label row (label/both), a damage row (damage/both), one row
+ * per packaging photo, and one row per detected damage instance.
  *
- * Every saved scan is stored, including compliant and no-damage ones —
- * the dashboard needs clean results to show a ratio against.
+ * The app's "Sync to dashboard" re-sends every record on the phone, so this
+ * must be idempotent. The payload `id` is stable — "<recordName>@
+ * <scannedAt>" — and is stored as `record_uid`. The work happens in one
+ * Postgres function (checkmuna_ingest_report, supabase-sync-migration.sql),
+ * so it is one transaction and one round trip:
  *
- * Children are deleted and rewritten rather than upserted, so a resubmit
- * of the same id can't leave stale detections from a previous attempt.
+ *   1. find the row by record_uid
+ *   2. else a legacy row (uploaded with a random id) with the same scan time
+ *      and sanitised name — and give it this record_uid
+ *   3. found → UPDATE: timings/report columns take the new values, anything
+ *      else only fills what is empty. Child rows are upserted, never added
+ *      twice. A re-send without photos (the app omits them on a sync) leaves
+ *      the stored photos alone.
+ *   4. not found → INSERT … ON CONFLICT, so two concurrent syncs can't race
+ *      into a duplicate.
+ *
+ * Builds without stable ids send a random id and no `recordName`. Those keep
+ * record_uid NULL (their id is not the phone's record id), so a later sync
+ * from an updated phone still finds them as legacy rows.
  */
 module.exports = async (req, res) => {
   setCors(res);
@@ -144,108 +229,93 @@ module.exports = async (req, res) => {
   const hasLabel  = kind !== 'damage';
   const hasDamage = kind !== 'label';
 
-  if (!body.id) body.id = Date.now() + '_' + Math.random().toString(36).slice(2);
+  const recordName = typeof body.recordName === 'string' && body.recordName
+    ? body.recordName : null;
+  const id = body.id
+    ? String(body.id)
+    : Date.now() + '_' + Math.random().toString(36).slice(2);
+  const recordUid = body.id && recordName ? id : null;
 
   const packagingType = toPackagingType(body.packagingType);
+  const timings = toTimings(body.timings);
 
-  const reportRow = {
-    id:              body.id,
+  const report = {
+    id,
     kind,
     packaging_type:  packagingType,
     status:          normalizeStatus(body.status),
     product_name:    body.productName || '',
     matched_keyword: body.matchedKeyword || '',
-    reasons:         Array.isArray(body.reasons) ? body.reasons : [],
+    reasons:         Array.isArray(body.reasons) ? body.reasons.map(String) : [],
+    // Passed through as the string the app sent and parsed by Postgres,
+    // exactly as it always has been — legacy matching depends on that.
     scanned_at:      body.scannedAt || null,
-    image_base64:    body.imageBase64 || null,
+    // Absent on a sync re-send → null → the stored photo is kept.
+    image_base64:    isDataImage(body.imageBase64) ? body.imageBase64 : null,
+    timings,
+    ml_total_ms:     sumTimings(timings),
+    ocr_ms:          sumTimings(timings, 'ocr'),
+    damage_model_ms: sumTimings(timings, 'damageModel'),
   };
 
+  let label = null;
+  if (hasLabel) {
+    const l = (body.label && typeof body.label === 'object') ? body.label : {};
+    label = {
+      detected_product_name: l.detectedProductName || '',
+      expiration:            l.expiration || '',
+      ingredients:           l.ingredients || '',
+      extracted_text:        l.extractedText || '',
+    };
+  }
+
+  let damage = null;
+  let images = [];
+  let detections = [];
+  if (hasDamage) {
+    const d = (body.damage && typeof body.damage === 'object') ? body.damage : {};
+    const damageReport = toDamageReport(d.report);
+    damage = {
+      packaging_type: packagingType,
+      available:      d.available === true,
+      is_damaged:     d.isDamaged === true,
+      message:        d.message || '',
+      max_confidence: toConfidence(d.maxConfidence),
+      timings:        toTimings(d.timings),
+      report:         damageReport,
+      ...inferenceStats(damageReport),
+    };
+    // Absent on a sync re-send → [] → nothing inserted, nothing deleted.
+    images = toImageRows(id, d.images);
+    detections = toDetectionRows(id, d);
+  }
+
   try {
-    const supabase = getClient();
+    const { data, error } = await getClient().rpc('checkmuna_ingest_report', {
+      p: {
+        record_uid:  recordUid,
+        record_name: recordName,
+        report, label, damage, images, detections,
+      },
+    });
+    if (error) throw error;
 
-    // ── Parent ──
-    const { error: parentErr } = await supabase
-      .from('reports')
-      .upsert(reportRow, { onConflict: 'id' });
-    if (parentErr) throw parentErr;
-
-    // ── Label half ──
-    // Clear first so a record that changed kind (or a retry) can't keep a
-    // stale half that no longer applies.
-    const { error: labelDelErr } = await supabase
-      .from('report_label_checks').delete().eq('report_id', body.id);
-    if (labelDelErr) throw labelDelErr;
-
-    if (hasLabel) {
-      const label = (body.label && typeof body.label === 'object') ? body.label : {};
-      const { error } = await supabase.from('report_label_checks').insert({
-        report_id:             body.id,
-        detected_product_name: label.detectedProductName || '',
-        expiration:            label.expiration || '',
-        ingredients:           label.ingredients || '',
-        extracted_text:        label.extractedText || '',
-      });
-      if (error) throw error;
-    }
-
-    // ── Damage half + detections ──
-    // Detections cascade off the parent, not the damage row, so delete
-    // them explicitly here.
-    const { error: detDelErr } = await supabase
-      .from('report_damage_detections').delete().eq('report_id', body.id);
-    if (detDelErr) throw detDelErr;
-
-    const { error: imgDelErr } = await supabase
-      .from('report_damage_images').delete().eq('report_id', body.id);
-    if (imgDelErr) throw imgDelErr;
-
-    const { error: dmgDelErr } = await supabase
-      .from('report_damage_checks').delete().eq('report_id', body.id);
-    if (dmgDelErr) throw dmgDelErr;
-
-    let detectionCount = 0;
-    let imageCount = 0;
-    if (hasDamage) {
-      const damage = (body.damage && typeof body.damage === 'object') ? body.damage : {};
-      const { error } = await supabase.from('report_damage_checks').insert({
-        report_id:      body.id,
-        packaging_type: packagingType,
-        available:      damage.available === true,
-        is_damaged:     damage.isDamaged === true,
-        message:        damage.message || '',
-        max_confidence: toConfidence(damage.maxConfidence),
-      });
-      if (error) throw error;
-
-      // Photos before detections: the detections point at them by ordinal, so
-      // the other order would leave a moment where a reader could see a box
-      // referring to a photo that isn't stored yet.
-      const imageRows = toImageRows(body.id, damage.images);
-      if (imageRows.length > 0) {
-        const { error: imgErr } = await supabase
-          .from('report_damage_images').insert(imageRows);
-        if (imgErr) throw imgErr;
-        imageCount = imageRows.length;
-      }
-
-      const detectionRows = toDetectionRows(body.id, damage);
-      if (detectionRows.length > 0) {
-        const { error: detErr } = await supabase
-          .from('report_damage_detections').insert(detectionRows);
-        if (detErr) throw detErr;
-        detectionCount = detectionRows.length;
-      }
-    }
+    const storedId = (data && data.id) || id;
+    const inserted = !!(data && data.inserted);
 
     console.log(
-      `[+] ${kind} report: ${reportRow.product_name} — ${reportRow.status}` +
+      `[${inserted ? '+' : '~'}] ${kind} report: ${report.product_name} — ${report.status}` +
       (packagingType ? ` (${packagingType})` : '') +
-      (detectionCount ? `, ${detectionCount} detection(s)` : '') +
-      (imageCount ? `, ${imageCount} photo(s)` : '')
+      (detections.length ? `, ${detections.length} detection(s)` : '') +
+      (images.length ? `, ${images.length} photo(s)` : '') +
+      (timings ? `, ${Math.round(report.ml_total_ms)} ms ML` : '')
     );
-    return res.status(200).json({ ok: true, id: body.id, kind });
+    return res.status(200).json({
+      ok: true, id: storedId, kind, result: inserted ? 'inserted' : 'updated',
+    });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ ok: false, reason: 'database error' });
   }
 };
+

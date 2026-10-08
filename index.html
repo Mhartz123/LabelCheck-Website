@@ -233,6 +233,16 @@
     .rule-foot{margin-top:16px;font-size:12px;color:var(--muted2);line-height:1.55;background:#f5f6f5;border-radius:9px;padding:10px 13px}
     .advisory-note{background:#fdeaea;border:1px solid #f6cccc;border-radius:10px;padding:12px 15px;font-size:12.5px;color:#a8322a;line-height:1.55}
     .advisory-note strong{font-weight:800}
+    /* On-device ML timing — dashboard card and detail section. */
+    .timing-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:18px}
+    .timing-tile{border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+    .timing-tile-label{font-size:11px;font-weight:700;color:#9ca3af;letter-spacing:.4px;text-transform:uppercase}
+    .timing-tile-val{font-size:22px;font-weight:800;letter-spacing:-.02em;margin-top:6px;font-variant-numeric:tabular-nums}
+    .timing-tile-sub{font-size:11.5px;color:var(--muted);margin-top:3px}
+    .timing-line{font-size:12.5px;color:#414a43;line-height:1.6;margin-top:12px}
+    .timing-line:empty{display:none}
+    .stage-group{font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:6px;flex:none;min-width:66px;text-align:center}
+
     .threshold-note{background:#f5f6f5;border:1px solid var(--border);border-radius:10px;padding:11px 15px;font-size:12.5px;color:#414a43;line-height:1.55;margin-top:12px}
 
     /* ══ NARROW SCREENS ══ */
@@ -253,6 +263,7 @@
       .donut-area{flex-direction:column;align-items:stretch}
       .donut-wrap{align-self:center}
       .detail-mini-grid{grid-template-columns:minmax(0,1fr)}
+      .timing-stats{grid-template-columns:minmax(0,1fr)}
       .photo-grid{grid-template-columns:minmax(0,1fr)}
       .row{flex-wrap:wrap}
       .rule-badge{width:104px;font-size:9.5px;white-space:nowrap}
@@ -426,6 +437,30 @@
           </div>
         </div>
 
+        <!-- Measured on the phone. Records saved before the app timed its
+             ML stages have no figures and are left out of every average. -->
+        <div class="card">
+          <div class="card-title">On-device ML time</div>
+          <div class="card-sub">Averages over the scans that measured it · older records without timings are left out</div>
+          <div class="timing-stats">
+            <div class="timing-tile">
+              <div class="timing-tile-label">OCR per scan</div>
+              <div class="timing-tile-val" id="avg-ocr">—</div>
+              <div class="timing-tile-sub" id="avg-ocr-sub"></div>
+            </div>
+            <div class="timing-tile">
+              <div class="timing-tile-label">Damage inference per photo</div>
+              <div class="timing-tile-val" id="avg-inference">—</div>
+              <div class="timing-tile-sub" id="avg-inference-sub"></div>
+            </div>
+            <div class="timing-tile">
+              <div class="timing-tile-label">Damage model load</div>
+              <div class="timing-tile-val" id="avg-load">—</div>
+              <div class="timing-tile-sub" id="avg-load-sub"></div>
+            </div>
+          </div>
+        </div>
+
         <div class="footer-strip">
           <strong class="footer-item" style="font-weight:800">CheckMuna</strong>
           <div class="footer-item">Shows each scan exactly as the app uploaded it. Verdicts are the app's own and are never re-decided here.</div>
@@ -548,6 +583,19 @@
               <div id="detail-reasons" style="display:flex;flex-direction:column;gap:9px"></div>
             </div>
 
+            <!-- On-device ML time for this scan. The split comes with the
+                 list; the stage-by-stage breakdown with the detail fetch. -->
+            <div class="detail-box">
+              <div class="detail-label" style="margin-bottom:11px">On-device ML time</div>
+              <div class="detail-mini-grid">
+                <div class="detail-mini-card"><div class="detail-mini-label">Total</div><div class="detail-mini-val" id="detail-ml-total"></div></div>
+                <div class="detail-mini-card"><div class="detail-mini-label">OCR</div><div class="detail-mini-val" id="detail-ml-ocr"></div></div>
+                <div class="detail-mini-card"><div class="detail-mini-label">Damage model</div><div class="detail-mini-val" id="detail-ml-damage"></div></div>
+              </div>
+              <div class="timing-line" id="detail-ml-note"></div>
+              <div id="detail-ml-stages" style="margin-top:6px"></div>
+            </div>
+
             <!-- ── Damage half. Shown for kind 'damage' and 'both'. ── -->
             <div class="detail-box" id="detail-damage-box">
               <div class="detail-label" style="margin-bottom:10px">Packaging damage</div>
@@ -558,7 +606,7 @@
 
             <!-- The shots the detector actually ran on, with its boxes drawn
                  back on. Hidden for records saved before the app uploaded
-                 them — see renderPhotos(). -->
+                 them — see renderLoaded(). -->
             <div class="detail-box" id="detail-photos-box">
               <div class="detail-label" style="margin-bottom:11px">Packaging photos</div>
               <div class="photo-grid" id="detail-photos"></div>
@@ -739,6 +787,16 @@
 
   function pct(v){ return (v==null || isNaN(v)) ? '—' : Math.round(v*100)+'%'; }
 
+  /** A duration, or "—" when it was never measured (null) — never "0 ms". */
+  function fmtMs(v){
+    if(v==null || isNaN(v)) return '—';
+    if(v >= 1000) return (v/1000).toFixed(2)+' s';
+    return (v < 10 ? Number(v).toFixed(1) : Math.round(v))+' ms';
+  }
+  function timingOf(r){ return r.timing || {}; }
+  function hasTimings(r){ return timingOf(r).totalMs != null; }
+  function mean(list){ return list.length ? list.reduce((a,b)=>a+b,0)/list.length : null; }
+
   /** "2 Structural deformation, 1 Label aberration" from the per-class counts. */
   function detectionSummary(r){
     const counts = (r.damage && r.damage.detectionCounts) || {};
@@ -778,20 +836,40 @@
     return SLOT_LABELS[img && img.slot] || ('Photo ' + (i + 1));
   }
 
-  // Photos are fetched per report and kept: a saved record never changes, so
-  // reopening one shouldn't re-download four images. Cleared on delete so the
-  // cache can't outlive the report it belongs to.
-  const photoCache = new Map();
+  // The heavy parts of a report — OCR text, stage timings, packaging photos —
+  // are fetched when its detail view opens and kept, so reopening it doesn't
+  // download them again. The promise is cached, so a re-render while the
+  // first request is in flight shares it. An entry is dropped when its report
+  // changes (a sync can fill in what it lacked) or is deleted.
+  const detailCache = new Map();
+  // The open report's photos, for the lightbox.
+  let openImages = { id: null, images: [] };
 
-  async function loadPhotos(id){
-    if(photoCache.has(id)) return photoCache.get(id);
-    const res = await fetch(SERVER + '/api/reports/images?id=' + encodeURIComponent(id));
-    if(res.status === 401){ toLogin(); return null; }
-    if(!res.ok) throw new Error('failed to load photos');
-    const data = await res.json();
-    const images = (data && data.ok && Array.isArray(data.images)) ? data.images : [];
-    photoCache.set(id, images);
-    return images;
+  function loadDetail(id){
+    if(detailCache.has(id)) return detailCache.get(id);
+    const p = (async () => {
+      const res = await fetch(SERVER + '/api/reports/detail?id=' + encodeURIComponent(id));
+      if(res.status === 401){ toLogin(); return null; }
+      if(!res.ok) throw new Error('failed to load report detail');
+      const data = await res.json();
+      if(!data || !data.ok) throw new Error((data && data.reason) || 'failed to load report detail');
+      return {
+        extractedText: data.extractedText || '',
+        timings:       Array.isArray(data.timings) ? data.timings : null,
+        damageTimings: Array.isArray(data.damageTimings) ? data.damageTimings : null,
+        images:        Array.isArray(data.images) ? data.images : [],
+      };
+    })();
+    detailCache.set(id, p);
+    p.catch(() => detailCache.delete(id));
+    return p;
+  }
+
+  /** The cover photo, served as a real image the browser caches. */
+  function coverImg(r, alt){
+    const src = SERVER + '/api/reports/cover?id=' + encodeURIComponent(r.id);
+    return '<img src="'+esc(src)+'" alt="'+esc(alt)+'" loading="lazy" '+
+      'onerror="this.style.display=&quot;none&quot;"/>';
   }
 
   /** The boxes belonging to one photo, by the ordinal its sourceIndex names. */
@@ -841,30 +919,37 @@
    * the app started uploading them. That is a missing preview, not a missing
    * check: the damage section above still reports what the detector found.
    */
-  async function renderPhotos(r){
+  async function renderLoaded(r){
     const box  = document.getElementById('detail-photos-box');
     const grid = document.getElementById('detail-photos');
     const note = document.getElementById('detail-photos-note');
     const stored = (r.damage && r.damage.photos) || [];
+    const wantPhotos = hasDamage(r) && stored.length > 0;
 
-    if(!hasDamage(r) || stored.length === 0){
-      box.style.display = 'none';
-      grid.innerHTML = '';
-      return;
-    }
-
-    box.style.display = '';
+    box.style.display = wantPhotos ? '' : 'none';
     note.style.display = 'none';
-    grid.innerHTML = '<div class="ingredients-text">Loading photos…</div>';
+    grid.innerHTML = wantPhotos ? '<div class="ingredients-text">Loading photos…</div>' : '';
+    if(hasLabel(r)) document.getElementById('detail-ocr').textContent = 'Loading…';
+    document.getElementById('detail-ml-stages').innerHTML = '';
 
-    let images;
-    try { images = await loadPhotos(r.id); }
-    catch(e){ images = null; }
+    let detail;
+    try { detail = await loadDetail(r.id); }
+    catch(e){ detail = null; }
 
     // The reader may have gone back to the list, or opened another report,
-    // while four images were in flight.
+    // while the request was in flight.
     if(currentReportId !== r.id) return;
 
+    if(hasLabel(r)){
+      document.getElementById('detail-ocr').textContent = !detail
+        ? 'Could not load the extracted text.'
+        : (detail.extractedText || '(no text extracted)');
+    }
+    renderStages(detail);
+
+    if(!wantPhotos) return;
+    const images = detail && detail.images;
+    openImages = { id: r.id, images: images || [] };
     if(!images){
       grid.innerHTML = '<div class="ingredients-text">Could not load the packaging photos.</div>';
       return;
@@ -906,7 +991,7 @@
   // ── LIGHTBOX ──
   function openLightbox(reportId, index){
     const r = allReports.find(x => x.id === reportId);
-    const images = photoCache.get(reportId);
+    const images = openImages.id === reportId ? openImages.images : null;
     if(!r || !images || !images[index]) return;
 
     const img = images[index];
@@ -935,20 +1020,51 @@
   });
 
   // ── LOAD FROM /api/reports ──
-  async function loadReports(){
+  // The first load fetches everything; every poll after that passes the
+  // cursor the last response gave and gets back only the reports added or
+  // changed since — usually none. If the merged list then disagrees with the
+  // server's count, something was deleted elsewhere, and one full reload
+  // puts it right.
+  let cursor = null;
+
+  async function loadReports(full){
     try {
-      const res = await fetch(SERVER + '/api/reports');
+      const delta = !full && cursor && allReports.length > 0;
+      const res = await fetch(SERVER + '/api/reports' +
+        (delta ? '?since=' + encodeURIComponent(cursor) : ''));
       // The session can end mid-session (expiry, sign-out elsewhere, the
       // account being switched off), and the 30s poll is where we notice.
       if (res.status === 401) return toLogin();
       const json = await res.json();
       if (!json.ok) throw new Error(json.reason || 'request failed');
 
-      allReports = json.reports || [];
+      const incoming = json.reports || [];
+      const prev = new Map(allReports.map(r => [r.id, r]));
+      // A delta overlaps the previous one slightly, so an unchanged row can
+      // come back; only a new updatedAt counts as a change.
+      let changed = !!json.full;
+      incoming.forEach(r => {
+        const old = prev.get(r.id);
+        if(!old || old.updatedAt !== r.updatedAt){
+          changed = true;
+          if(old) detailCache.delete(r.id);
+        }
+      });
 
-      renderReports();
-      updateDashboard();
-      if (currentReportId) renderDetail(currentReportId);
+      if(json.full){
+        allReports = incoming;
+      } else {
+        incoming.forEach(r => prev.set(r.id, r));
+        allReports = [...prev.values()];
+        if(allReports.length !== json.total) return loadReports(true);
+      }
+      if(json.cursor) cursor = json.cursor;
+
+      if(changed){
+        renderReports();
+        updateDashboard();
+        if (currentReportId) renderDetail(currentReportId);
+      }
       document.getElementById('live-text').textContent = 'Live';
     } catch(e){
       console.error(e);
@@ -1083,8 +1199,8 @@
       row.setAttribute('aria-label','View report: '+(r.productName||'Unnamed Product'));
       row.onkeydown = (e)=>{ if(e.key==='Enter'){ e.preventDefault(); openDetail(r.id); } };
 
-      const thumbHtml = r.imageBase64
-        ? '<img src="'+r.imageBase64+'" alt="Photo for '+esc(r.productName||'product')+'"/>'
+      const thumbHtml = r.hasImage
+        ? coverImg(r, 'Photo for '+(r.productName||'product'))
         : placeholderIcon();
 
       const kind = kindOf(r);
@@ -1171,6 +1287,7 @@
 
     updateCheckResults();
     updateTriggers();
+    updateTimings();
 
     // Donut: one arc per verdict, laid end to end around the ring.
     const circ = 2*Math.PI*46;
@@ -1283,6 +1400,28 @@
     }).join('');
   }
 
+  /**
+   * Average on-device ML time. Each figure averages only the scans that
+   * measured it — records from before the app timed its stages, and scans
+   * that never ran that stage, are left out rather than counted as 0.
+   * Inference is each scan's per-photo mean, averaged across scans. Model
+   * load is only recorded on the scan that paid for it.
+   */
+  function updateTimings(){
+    const ocr  = allReports.map(r => timingOf(r).ocrMs).filter(v => v != null);
+    const inf  = allReports.filter(hasDamage).map(r => r.damage.inferenceMeanMs).filter(v => v != null);
+    const load = allReports.filter(hasDamage).map(r => r.damage.modelLoadMs).filter(v => v != null);
+    const n = k => k ? k.toLocaleString()+(k===1?' scan':' scans') : 'No measured scans yet';
+    setText('avg-ocr', fmtMs(mean(ocr)));
+    setText('avg-ocr-sub', n(ocr.length));
+    setText('avg-inference', fmtMs(mean(inf)));
+    setText('avg-inference-sub', n(inf.length));
+    setText('avg-load', fmtMs(mean(load)));
+    setText('avg-load-sub', load.length
+      ? n(load.length)+' that loaded the model'
+      : 'No measured loads yet');
+  }
+
   // ── ACTIONS ──
   function toggleCheck(e, id){
     e.stopPropagation();
@@ -1333,7 +1472,7 @@
       const json = await res.json();
       if(!json.ok) throw new Error(json.reason || 'delete failed');
 
-      ids.forEach(id=>{ selectedIds.delete(id); photoCache.delete(id); });
+      ids.forEach(id=>{ selectedIds.delete(id); detailCache.delete(id); });
       allReports = allReports.filter(r=>!ids.includes(r.id));
       if(currentReportId && ids.includes(currentReportId)) showPage('reports');
       renderReports();
@@ -1353,11 +1492,15 @@
   // One sheet covering all three flows: shared columns first, then each
   // half's own, blank where that half wasn't run. An inspection row fills
   // both halves. Exports whatever the current filters and sort produced.
+  /** Blank, not 0, for a figure that was never measured. */
+  function msCell(v){ return (v==null || isNaN(v)) ? '' : Math.round(v*10)/10; }
+
   function exportCSV(){
     const header = ['ID','Mode','Record Name','Packaging','Status','Verdict','Scanned',
                     'Detected Product','Expiration','Ingredients',
                     'Damage Checked','Damage Found','Failed On Damage','Detections','Max Confidence',
-                    'Matched Keyword','Reasons'];
+                    'Matched Keyword','Reasons',
+                    'ML Total ms','OCR ms','Damage Model ms','Inference ms/Photo','Model Load ms'];
 
     const rows = [header, ...getFiltered().map(r=>{
       const L = hasLabel(r)  ? r.label  : null;
@@ -1380,6 +1523,11 @@
         D && D.available && D.isDamaged ? pct(D.maxConfidence) : '',
         r.matchedKeyword || '',
         Array.isArray(r.reasons) ? r.reasons.join(' | ') : '',
+        msCell(timingOf(r).totalMs),
+        msCell(timingOf(r).ocrMs),
+        msCell(timingOf(r).damageModelMs),
+        msCell(D && D.inferenceMeanMs),
+        msCell(D && D.modelLoadMs),
       ];
     })];
 
@@ -1552,8 +1700,8 @@
 
     const imgEl = document.getElementById('detail-img');
     imgEl.style.background = '#eef1ee';
-    imgEl.innerHTML = r.imageBase64
-      ? '<img src="'+r.imageBase64+'" alt="Photo for '+esc(name)+'"/>'
+    imgEl.innerHTML = r.hasImage
+      ? coverImg(r, 'Photo for '+name)
       : placeholderIcon();
 
     document.getElementById('detail-reasons-label').textContent =
@@ -1580,12 +1728,58 @@
     if(showLabel){
       document.getElementById('detail-ingredients').textContent =
         (r.label && r.label.ingredients) || '—';
-      document.getElementById('detail-ocr').textContent =
-        (r.label && r.label.extractedText) || '(no text extracted)';
     }
     if(showDamage) renderDamage(r);
-    // Async — the photos arrive after the rest of the panel has painted.
-    renderPhotos(r);
+    renderTiming(r);
+    // Async — OCR text, stage timings and photos arrive after the rest of
+    // the panel has painted.
+    renderLoaded(r);
+  }
+
+  /**
+   * The scan's ML time and its OCR / damage-model split. "—" means not
+   * measured (a record from before timings); "Not run" means this kind of
+   * scan has no such stage.
+   */
+  function renderTiming(r){
+    const t = timingOf(r);
+    const measured = hasTimings(r);
+    const split = (v, ran) => v != null ? fmtMs(v) : (measured && !ran ? 'Not run' : '—');
+    setText('detail-ml-total',  fmtMs(t.totalMs));
+    setText('detail-ml-ocr',    split(t.ocrMs, hasLabel(r)));
+    setText('detail-ml-damage', split(t.damageModelMs, hasDamage(r)));
+
+    const d = hasDamage(r) ? r.damage : null;
+    const bits = [];
+    if(!measured) bits.push('Not measured — this record was saved before the app timed its ML stages.');
+    if(d && d.inferenceMeanMs != null){
+      const spread = (d.inferenceMinMs != null && d.inferenceMaxMs != null && d.inferenceMinMs !== d.inferenceMaxMs)
+        ? ' ('+fmtMs(d.inferenceMinMs)+' – '+fmtMs(d.inferenceMaxMs)+')' : '';
+      bits.push('Damage inference: '+fmtMs(d.inferenceMeanMs)+' per photo'+spread+'. '+
+        (d.modelLoadMs != null
+          ? 'Model load: '+fmtMs(d.modelLoadMs)+'.'
+          : 'The model was already loaded before this scan.'));
+    }
+    setText('detail-ml-note', bits.join(' '));
+  }
+
+  const STAGE_GROUPS = {
+    ocr:         { name:'OCR',    color:'#1a7a3c' },
+    damageModel: { name:'DAMAGE', color:'#1565c0' },
+  };
+
+  /** Stage-by-stage breakdown, once the detail fetch has it. */
+  function renderStages(detail){
+    const stages = (detail && detail.timings) || [];
+    document.getElementById('detail-ml-stages').innerHTML = stages.map(s => {
+      const g = STAGE_GROUPS[s.group] || { name:String(s.group||'').toUpperCase(), color:'#6b7280' };
+      const runs = s.runs > 1 ? ' · '+s.runs+' runs, '+fmtMs(s.totalMs / s.runs)+' each' : '';
+      return '<div class="finding-row">'+
+        '<span class="stage-group" style="color:'+g.color+';background:'+g.color+'1a">'+esc(g.name)+'</span>'+
+        '<span class="finding-text">'+esc(s.label || '—')+esc(runs)+'</span>'+
+        '<span class="finding-conf">'+fmtMs(s.totalMs)+'</span>'+
+      '</div>';
+    }).join('');
   }
 
   /** The damage half: outcome line, per-class detection counts, model note. */
@@ -1715,7 +1909,12 @@
     document.body.classList.add('authed');
 
     loadReports();
-    pollTimer = setInterval(loadReports, 30000);
+    // A hidden tab doesn't poll — nobody is looking, and every poll is
+    // egress. Coming back catches up straight away.
+    pollTimer = setInterval(() => { if(!document.hidden) loadReports(); }, 30000);
+    document.addEventListener('visibilitychange', () => {
+      if(!document.hidden) loadReports();
+    });
   }
 
   start();
